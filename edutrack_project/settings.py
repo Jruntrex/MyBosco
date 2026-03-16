@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import logging.config
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -81,10 +82,11 @@ WSGI_APPLICATION = 'edutrack_project.wsgi.application'
 # Database Configuration
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# MySQL Configuration (using mysql-connector-python)
+# MySQL Configuration (mysqlclient — C-extension, standard for Django)
+# Install: pip install mysqlclient
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DB_ENGINE', 'mysql.connector.django'),
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.mysql'),
         'NAME': os.getenv('DB_NAME', 'edutrack_db'),
         'USER': os.getenv('DB_USER', 'root'),
         'PASSWORD': os.getenv('DB_PASSWORD', ''),
@@ -92,10 +94,12 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT', '3306'),
         'OPTIONS': {
             'charset': 'utf8mb4',
-            'autocommit': True,
         },
     }
 }
+
+# Hardware integration
+CARD_SCAN_API_KEY = os.getenv('CARD_SCAN_API_KEY', '')
 
 
 # Password validation
@@ -150,3 +154,47 @@ LOGIN_URL = '/'  # Redirects to custom login view (GET-enabled)
 LOGIN_REDIRECT_URL = '/admin/'  # Where to redirect after successful login
 
 AUTH_USER_MODEL = 'main.User'
+
+# Logging — application errors go to logs/django.log, debug prints to console
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'django.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 3,
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'main': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}

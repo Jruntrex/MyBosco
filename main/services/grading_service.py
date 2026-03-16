@@ -7,12 +7,18 @@ Grading Service - Business Logic для системи оцінювання
 - Конвертації балів у оцінки за шкалою
 """
 
-from datetime import date
+import logging
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
 from django.db.models import Avg, Count, Sum, Q, QuerySet
-from main.models import User, Subject, StudentPerformance, GradingScale, GradeRule, Lesson, EvaluationType
+from main.models import (
+    User, Subject, StudentPerformance, GradingScale, GradeRule,
+    Lesson, EvaluationType, AbsenceReason, TeachingAssignment,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_student_grade(
@@ -314,3 +320,158 @@ def get_teacher_journal_context(group_id: int, subject_id: int, week_offset: int
         'week_offset': week_offset,
         'evaluation_types': EvaluationType.objects.filter(assignment__group_id=group_id, assignment__subject_id=subject_id)
     }
+
+
+def save_grade(
+    *,
+    teacher_id: int,
+    student_id: int,
+    lesson_id: Optional[int],
+    lesson_date_str: Optional[str],
+    lesson_num: Optional[int],
+    subject_id: Optional[int],
+    raw_value,
+    absence_id: Optional[int],
+    has_absence_id: bool,
+    comment_text: Optional[str],
+) -> dict:
+    """
+    Бізнес-логіка збереження оцінки студента.
+
+    Повертає dict: {'status': 'success'|'error', 'message': str}
+    """
+    from main.constants import DEFAULT_LESSON_TIMES, DEFAULT_TIME_SLOTS
+
+    # 1. Validate inputs
+    if not lesson_id and not (student_id and lesson_date_str and lesson_num and subject_id):
+        return {
+            'status': 'error',
+            'message': (
+                f'Missing coordinates or lesson_id: '
+                f's:{student_id} d:{lesson_date_str} n:{lesson_num} sub:{subject_id}'
+            ),
+        }
+
+    # 2. Resolve student and group
+    student = User.objects.filter(pk=student_id).first()
+    if not student:
+        return {'status': 'error', 'message': 'Студента не знайдено'}
+    group = student.group
+    if not group:
+        return {'status': 'error', 'message': 'Студент не має групи'}
+
+    # 3. Resolve lesson
+    if lesson_id:
+        current_lesson = Lesson.objects.filter(id=lesson_id).first()
+        if not current_lesson:
+            return {'status': 'error', 'message': 'Заняття не знайдено'}
+    else:
+        start_time_info = DEFAULT_TIME_SLOTS.get(int(lesson_num))
+        if start_time_info:
+            start_time = start_time_info[0]
+        else:
+            start_time_str = DEFAULT_LESSON_TIMES.get(int(lesson_num), "08:30")
+            start_time = datetime.strptime(start_time_str, "%H:%M").time()
+
+        try:
+            assignment = TeachingAssignment.objects.get(
+                teacher_id=teacher_id,
+                subject_id=int(subject_id),
+                group=group,
+            )
+        except TeachingAssignment.DoesNotExist:
+            return {
+                'status': 'error',
+                'message': (
+                    f'Прив\'язку викладача не знайдено: '
+                    f'teacher={teacher_id}, subject={subject_id}, group={group.id}'
+                ),
+            }
+
+        eval_type = assignment.evaluation_types.first()
+        if not eval_type:
+            eval_type = EvaluationType.objects.create(
+                assignment=assignment,
+                name="Заняття",
+                weight_percent=0,
+            )
+
+        current_lesson, created = Lesson.objects.get_or_create(
+            group=group,
+            date=lesson_date_str,
+            start_time=start_time,
+            defaults={
+                'subject_id': int(subject_id),
+                'teacher_id': teacher_id,
+                'end_time': (
+                    datetime.combine(date.today(), start_time) + timedelta(minutes=90)
+                ).time(),
+                'evaluation_type': eval_type,
+            },
+        )
+
+        if not created:
+            if current_lesson.subject_id != int(subject_id):
+                logger.debug(
+                    "Lesson subject conflict: DB=%s, REQ=%s. Updating.",
+                    current_lesson.subject_id, subject_id,
+                )
+                current_lesson.subject_id = int(subject_id)
+                current_lesson.teacher_id = teacher_id
+                current_lesson.evaluation_type = eval_type
+                current_lesson.save()
+            elif current_lesson.evaluation_type_id != eval_type.id:
+                current_lesson.evaluation_type = eval_type
+                current_lesson.save()
+
+    logger.debug(
+        "Using Lesson: id=%s, subject=%s, group=%s",
+        current_lesson.id, current_lesson.subject_id, current_lesson.group_id,
+    )
+
+    # 4. Parse value
+    grade_value = None
+    absence_obj = None
+
+    if raw_value in [None, '', '—'] and not comment_text:
+        StudentPerformance.objects.filter(
+            lesson=current_lesson, student_id=student_id
+        ).delete()
+        return {'status': 'success', 'message': 'Cleared'}
+
+    raw_str = str(raw_value).upper().strip() if raw_value is not None else ""
+    if raw_str in ['H', 'N', 'Н']:
+        absence_obj = (
+            AbsenceReason.objects.filter(code='Н').first()
+            or AbsenceReason.objects.first()
+        )
+    elif absence_id:
+        absence_obj = AbsenceReason.objects.filter(id=absence_id).first()
+    elif raw_str.isdigit() or (raw_str.startswith('-') and raw_str[1:].isdigit()):
+        grade_value = int(raw_str)
+
+    logger.debug(
+        "Saving Grade: Student=%s, Lesson=%s, Value=%s",
+        student_id, current_lesson.id, raw_value,
+    )
+
+    # 5. Build defaults and save
+    defaults = {}
+    if grade_value is not None:
+        defaults['earned_points'] = grade_value
+        defaults['absence'] = None
+    if has_absence_id or absence_obj:
+        defaults['absence'] = absence_obj
+        if absence_obj:
+            defaults['earned_points'] = None
+    if comment_text is not None:
+        defaults['comment'] = comment_text
+
+    perf, created = StudentPerformance.objects.update_or_create(
+        lesson=current_lesson,
+        student_id=student_id,
+        defaults=defaults,
+    )
+    logger.debug("Performance saved: id=%s, created=%s", perf.id, created)
+
+    return {'status': 'success', 'message': 'Saved'}

@@ -1,13 +1,17 @@
 import csv
 import json
+import logging
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from typing import List, Dict, Any, Optional, Union, Callable, Tuple
+
+logger = logging.getLogger(__name__)
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Avg, Count, F, Max, Min, Prefetch, Q, Sum
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -224,11 +228,15 @@ def users_list_view(request: HttpRequest) -> HttpResponse:
     groups = StudyGroup.objects.all()
     all_subjects = Subject.objects.all()
 
+    paginator = Paginator(users, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
     return render(
         request,
         'users.html',
         {
-            'users': users,
+            'users': page_obj,
+            'page_obj': page_obj,
             'form': form,
             'groups': groups,
             'all_subjects': all_subjects,
@@ -677,12 +685,11 @@ def save_schedule_changes(request: HttpRequest) -> JsonResponse:
             'status': 'error',
             'message': 'Невірний формат JSON'
         }, status=400)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
+    except Exception:
+        logger.exception('save_schedule_changes: unexpected error')
         return JsonResponse({
             'status': 'error',
-            'message': str(e)
+            'message': 'Внутрішня помилка сервера'
         }, status=500)
 
 @role_required('admin')
@@ -1002,173 +1009,77 @@ def teacher_journal_view(request: HttpRequest) -> HttpResponse:
 @require_POST
 def api_save_grade(request: HttpRequest) -> JsonResponse:
     """
-    API for saving a single grade entry instantly.
+    API для миттєвого збереження оцінки.
     Payload: { student_id, date, lesson_num, subject_id, value, comment }
     """
-    from main.constants import DEFAULT_LESSON_TIMES
-    from datetime import datetime, timedelta, date
+    from main.services.grading_service import save_grade as _save_grade
+
+    if not request.user.is_authenticated or request.user.role != 'teacher':
+        return JsonResponse({'status': 'error', 'message': 'Forbidden'}, status=403)
 
     try:
         data = json.loads(request.body)
-        
-        # Handle both flat and nested (for compatibility if needed, but preference for flat)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Невірний формат JSON'}, status=400)
+
+    try:
+        # Підтримка як плоского, так і вкладеного формату payload
         if 'changes' in data and len(data['changes']) > 0:
             data = data['changes'][0]
             student_id = data.get('student_pk')
         else:
             student_id = data.get('student_id')
 
-        lesson_id = data.get('lesson_id')
-        lesson_date_str = data.get('date')
-        lesson_num = data.get('lesson_num')
-        subject_id = data.get('subject_id')
-        raw_value = data.get('value')
-        absence_id = data.get('absence_id')
-        comment_text = data.get('comment')
-
-        if not lesson_id and not (student_id and lesson_date_str and lesson_num and subject_id):
-            return JsonResponse({'status': 'error', 'message': f'Missing coordinates or lesson_id: s:{student_id} d:{lesson_date_str} n:{lesson_num} sub:{subject_id}'}, status=400)
-
-        # 1. Resolve Teacher and Authorization
-        if not request.user.is_authenticated or request.user.role != 'teacher':
-             return JsonResponse({'status': 'error', 'message': 'Forbidden'}, status=403)
-        teacher_id = request.user.id
-
-        # 2. Resolve Student and Group
-        student = get_object_or_404(User, pk=student_id)
-        group = student.group
-        if not group:
-             return JsonResponse({'status': 'error', 'message': 'Student has no group'}, status=400)
-
-        # 3. Resolve Lesson
-        if lesson_id:
-             current_lesson = get_object_or_404(Lesson, id=lesson_id)
-        else:
-             # Get start_time for the lesson number
-             from main.constants import DEFAULT_TIME_SLOTS
-             start_time_info = DEFAULT_TIME_SLOTS.get(int(lesson_num))
-             if start_time_info:
-                  start_time = start_time_info[0]
-             else:
-                  # Last resort fallback to deprecated mapping
-                  start_time_str = DEFAULT_LESSON_TIMES.get(int(lesson_num), "08:30")
-                  start_time = datetime.strptime(start_time_str, "%H:%M").time()
-
-             # Determine Assignment
-             try:
-                 assignment = TeachingAssignment.objects.get(
-                     teacher_id=teacher_id,
-                     subject_id=int(subject_id),
-                     group=group
-                 )
-             except TeachingAssignment.DoesNotExist:
-                 return JsonResponse({'status': 'error', 'message': f'Assignment not found for teacher {teacher_id}, subject {subject_id}, group {group.id}'}, status=403)
-
-             # Get/Create Lesson
-             eval_type = assignment.evaluation_types.first()
-             if not eval_type:
-                 eval_type = EvaluationType.objects.create(
-                     assignment=assignment, 
-                     name="Заняття", 
-                     weight_percent=0
-                 )
-
-             # CRITICAL: Use only unique fields for lookup to avoid IntegrityError
-             current_lesson, created = Lesson.objects.get_or_create(
-                 group=group,
-                 date=lesson_date_str,
-                 start_time=start_time,
-                 defaults={
-                     'subject_id': int(subject_id),
-                     'teacher_id': teacher_id,
-                     'end_time': (datetime.combine(date.today(), start_time) + timedelta(minutes=90)).time(),
-                     'evaluation_type': eval_type
-                 }
-             )
-             
-             if not created:
-                 # Check for subject conflict
-                 if current_lesson.subject_id != int(subject_id):
-                     print(f"[DEBUG] Lesson subject conflict: DB={current_lesson.subject_id}, REQ={subject_id}. Updating lesson subject.")
-                     current_lesson.subject_id = int(subject_id)
-                     current_lesson.teacher_id = teacher_id
-                     current_lesson.evaluation_type = eval_type
-                     current_lesson.save()
-                 elif current_lesson.evaluation_type_id != eval_type.id:
-                     current_lesson.evaluation_type = eval_type
-                     current_lesson.save()
-        
-        print(f"[DEBUG] Using Lesson: id={current_lesson.id}, subject={current_lesson.subject_id}, group={current_lesson.group_id}")
-        
-        # 4. Parse Value and Save Performance
-        grade_value = None
-        absence_obj = None
-
-        if raw_value in [None, '', '—'] and not comment_text:
-             StudentPerformance.objects.filter(lesson=current_lesson, student_id=student_id).delete()
-             return JsonResponse({'status': 'success', 'message': 'Cleared'})
-
-        # Refined Parsing (Compatible with 'H', 'N', and numeric grades)
-        raw_str = str(raw_value).upper().strip() if raw_value is not None else ""
-        if raw_str in ['H', 'N', 'Н']: # Cyrillic H
-             absence_obj = AbsenceReason.objects.filter(code='Н').first() or AbsenceReason.objects.first()
-        elif absence_id:
-             absence_obj = AbsenceReason.objects.filter(id=absence_id).first()
-        elif raw_str.isdigit() or (raw_str.startswith('-') and raw_str[1:].isdigit()):
-             grade_value = int(raw_str)
-        
-        print(f"[DEBUG] Saving Grade: Student={student_id}, Lesson={current_lesson.id}, Value={raw_value}")
-        
-        defaults = {}
-        if grade_value is not None:
-            defaults['earned_points'] = grade_value
-            defaults['absence'] = None  # Clear absence if grade is set
-        
-        if 'absence_id' in data or absence_obj:
-            defaults['absence'] = absence_obj
-            if absence_obj:
-                defaults['earned_points'] = None # Clear grade if absent
-        
-        if comment_text is not None:
-            defaults['comment'] = comment_text
-
-        perf, created = StudentPerformance.objects.update_or_create(
-            lesson=current_lesson,
+        result = _save_grade(
+            teacher_id=request.user.id,
             student_id=student_id,
-            defaults=defaults
+            lesson_id=data.get('lesson_id'),
+            lesson_date_str=data.get('date'),
+            lesson_num=data.get('lesson_num'),
+            subject_id=data.get('subject_id'),
+            raw_value=data.get('value'),
+            absence_id=data.get('absence_id'),
+            has_absence_id='absence_id' in data,
+            comment_text=data.get('comment'),
         )
-        print(f"[DEBUG] Performance saved: id={perf.id}, created={created}")
-        
-        return JsonResponse({'status': 'success', 'message': 'Saved'})
+        status_code = 200 if result['status'] == 'success' else 400
+        return JsonResponse(result, status=status_code)
 
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    except Exception:
+        logger.exception('api_save_grade: unexpected error')
+        return JsonResponse({'status': 'error', 'message': 'Внутрішня помилка сервера'}, status=500)
 
 
 @require_POST
 def api_card_scan(request) -> JsonResponse:
     """
-    Simulates RFID Scan.
+    Реєстрація сканування RFID-мітки (ESP32 → сервер).
     Payload: { student_id, action (ENTER/EXIT) }
+    Заголовок: X-API-Key: <CARD_SCAN_API_KEY із .env>
     """
+    from django.conf import settings
     from main.models import BuildingAccessLog
-    
+
+    # Перевірка статичного API-ключа апаратного інтерфейсу
+    expected_key = getattr(settings, 'CARD_SCAN_API_KEY', '')
+    provided_key = request.headers.get('X-API-Key', '')
+    if not expected_key or provided_key != expected_key:
+        logger.warning('api_card_scan: unauthorized request from %s', request.META.get('REMOTE_ADDR'))
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=401)
+
     try:
         data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Невірний формат JSON'}, status=400)
+
+    try:
         student_id = data.get('student_id')
-        action = data.get('action', 'ENTER') # ENTER or EXIT
-        
-        BuildingAccessLog.objects.create(
-            student_id=student_id,
-            action=action
-        )
+        action = data.get('action', 'ENTER')  # ENTER або EXIT
+        BuildingAccessLog.objects.create(student_id=student_id, action=action)
         return JsonResponse({'status': 'success'})
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc()) # Print to server console
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    except Exception:
+        logger.exception('api_card_scan: failed to create BuildingAccessLog')
+        return JsonResponse({'status': 'error', 'message': 'Внутрішня помилка сервера'}, status=500)
 
 # =========================
 # 4. СТУДЕНТ
@@ -1878,9 +1789,13 @@ def students_list_view(request):
         
     students = students.order_by('group__name', 'full_name')
     groups = StudyGroup.objects.all()
-    
+
+    paginator = Paginator(students, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
     return render(request, 'students.html', {
-        'students': students, 
+        'students': page_obj,
+        'page_obj': page_obj,
         'groups': groups,
         'active_page': 'students'
     })
