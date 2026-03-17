@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EduTrack{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -55,18 +55,6 @@
                             d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                     <span>Користувачі</span>
-                </a>
-
-                <a href="{% url 'students_list' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'students' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
-                    tabindex="0">
-                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.908V14z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.908V14z" />
-                    </svg>
-                    <span>Студенти</span>
                 </a>
 
                 <a href="{% url 'groups_list' %}"
@@ -250,8 +238,8 @@
             {% block page_header %}
             <header role="banner">
 
-                <!-- Nav Buttons (fixed left edge) -->
-                <div class="fixed top-6 lg:top-10 left-6 z-40 flex items-center gap-2">
+                <!-- Nav Buttons (fixed, after sidebar on desktop) -->
+                <div class="fixed top-6 lg:top-10 left-6 lg:left-72 z-40 flex items-center gap-2">
                     <button onclick="safeNavigateBack()"
                         class="p-2.5 bg-surface/60 backdrop-blur-md border border-border/40 rounded-xl text-mutedText hover:text-primary hover:bg-surface hover:shadow-lg transition-all duration-300 group"
                         title="Назад">
@@ -479,14 +467,11 @@
             }
         }
 
-        // Prevent browser back button from going to login after logout
+        // Prevent browser back/forward cache from restoring stale authenticated pages after logout
         window.addEventListener('pageshow', function (event) {
-            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-                // Page was loaded from cache (back button)
-                if (isLoginPage(window.location.href) && sessionStorage.getItem('sessionStartTime')) {
-                    // User is trying to go back to login while having an active session
-                    redirectToDashboard();
-                }
+            if (event.persisted) {
+                // BFCache restore — re-validate session by reloading from server
+                window.location.reload();
             }
         });
 

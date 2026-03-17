@@ -9,7 +9,8 @@
       "Bash(python manage.py makemigrations)",
       "Bash(npx tailwindcss:*)",
       "Bash(find c:UsersuserMy_WorksEduTrackVERSION.2EduTrack -type f -name *notification*)",
-      "Bash(python manage.py makemigrations main --name=add_notifications)"
+      "Bash(python manage.py makemigrations main --name=add_notifications)",
+      "Bash(npm run:*)"
     ]
   }
 }

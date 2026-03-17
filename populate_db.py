@@ -389,20 +389,69 @@ def create_initial_data() -> None:
 
     # ── 10. Шаблони розкладу (пн–пт, 3–4 пари/день/група) ──────────────────
     # Unique constraint: (group, day_of_week, lesson_number)
+    # Перевірка: викладач не може бути зайнятий двічі в один час
+    # Перевірка: пари не накладаються (слоти мають мін. 15 хв перерву)
     templates = []
     week_types = ["numerator", "denominator"]
+
+    # {day: {lesson_number: set(teacher_id)}} — хто зайнятий у цей час
+    teacher_busy: dict[int, dict[int, set]] = {
+        day: {slot.lesson_number: set() for slot in time_slots}
+        for day in range(1, 6)
+    }
+    # {day: {lesson_number: set(classroom_id)}} — яка аудиторія зайнята
+    classroom_busy: dict[int, dict[int, set]] = {
+        day: {slot.lesson_number: set() for slot in time_slots}
+        for day in range(1, 6)
+    }
+
     for group in groups:
         group_assigns = [a for a in assignments if a.group == group]
-        assign_idx = 0
+
         for day in range(1, 6):  # 1=Пн … 5=Пт
+            # Для кожного слоту визначаємо, які призначення (викладачі) ще вільні
+            candidates: list[tuple] = []  # (slot, assign)
+            for slot in time_slots:
+                free_assigns = [
+                    a for a in group_assigns
+                    if a.teacher_id not in teacher_busy[day][slot.lesson_number]
+                ]
+                for a in free_assigns:
+                    candidates.append((slot, a))
+
+            # Вибираємо 3–4 пари без повторення слоту та викладача
+            random.shuffle(candidates)
             n_lessons = random.randint(3, 4)
-            chosen_slots = sorted(
-                random.sample(time_slots, n_lessons),
-                key=lambda s: s.lesson_number,
-            )
-            for slot in chosen_slots:
-                assign = group_assigns[assign_idx % len(group_assigns)]
-                assign_idx += 1
+            chosen: list[tuple] = []
+            used_slots: set[int] = set()
+            used_assign_ids: set[int] = set()
+
+            for slot, assign in candidates:
+                if len(chosen) >= n_lessons:
+                    break
+                if slot.lesson_number in used_slots:
+                    continue
+                if assign.id in used_assign_ids:
+                    continue
+                chosen.append((slot, assign))
+                used_slots.add(slot.lesson_number)
+                used_assign_ids.add(assign.id)
+
+            # Сортуємо за номером пари для читабельності
+            chosen.sort(key=lambda x: x[0].lesson_number)
+
+            for slot, assign in chosen:
+                # Вибір вільної аудиторії
+                free_classrooms = [
+                    c for c in classrooms
+                    if c.id not in classroom_busy[day][slot.lesson_number]
+                ]
+                classroom = random.choice(free_classrooms) if free_classrooms else random.choice(classrooms)
+
+                # Позначаємо викладача та аудиторію як зайняті
+                teacher_busy[day][slot.lesson_number].add(assign.teacher_id)
+                classroom_busy[day][slot.lesson_number].add(classroom.id)
+
                 tmpl = ScheduleTemplate(
                     teaching_assignment=assign,
                     group=group,
@@ -412,8 +461,8 @@ def create_initial_data() -> None:
                     lesson_number=slot.lesson_number,
                     start_time=slot.start_time,
                     duration_minutes=80,
-                    classroom=random.choice(classrooms),
-                    week_type=week_types[assign_idx % 2],
+                    classroom=classroom,
+                    week_type=week_types[len(templates) % 2],
                 )
                 tmpl.save()
                 templates.append(tmpl)

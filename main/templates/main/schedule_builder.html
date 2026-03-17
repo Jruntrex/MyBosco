@@ -6,7 +6,7 @@
 {% block header_title %}Конструктор Розкладу{% endblock %}
 
 {% block content %}
-<div class="card-bento min-h-[600px]">
+<div class="card-bento min-h-[600px] pb-10">
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Sidebar -->
         <div class="lg:col-span-1">
@@ -112,20 +112,20 @@
                                             class="lesson-subject w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-700">
                                             <option value="">--</option>
                                             {% for item in subject_data %}
-                                            <option value="{{ item.id }}" data-teacher-id="{{ item.teacher_id }}"
-                                                data-teacher-name="{{ item.teacher_name }}">
-                                                {{ item.name }}
-                                            </option>
+                                            <option value="{{ item.id }}">{{ item.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </td>
 
-                                    <!-- Teacher (Auto-filled) -->
+                                    <!-- Teacher Select -->
                                     <td class="p-3 align-top pt-3">
-                                        <input type="text" readonly
-                                            class="lesson-teacher w-full px-3 py-2 bg-transparent border-none text-xs text-gray-500 font-medium focus:ring-0 cursor-default"
-                                            placeholder="Автоматично">
+                                        <select
+                                            class="lesson-teacher-select w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-gray-500"
+                                            disabled>
+                                            <option value="">Автоматично</option>
+                                        </select>
                                         <input type="hidden" class="lesson-teacher-id">
+                                        <div class="teacher-busy-warning text-[10px] text-amber-600 font-bold hidden mt-1"></div>
                                     </td>
 
                                     <!-- Classroom -->
@@ -175,21 +175,34 @@
             groupInfoText: document.getElementById('groupInfoText')
         };
 
-        // This will hold the FULL schedule data for all groups loaded from server
         let allScheduleData = {};
         try {
             const dataEl = document.getElementById('schedule-data');
-            if (dataEl) {
-                allScheduleData = JSON.parse(dataEl.textContent);
-            }
-        } catch (e) {
-            console.error("Error parsing schedule data", e);
-        }
+            if (dataEl) allScheduleData = JSON.parse(dataEl.textContent);
+        } catch (e) { console.error("Error parsing schedule data", e); }
 
-        let state = {
-            currentGroup: null,
-            modified: false
-        };
+        let subjectTeachersMap = {};
+        try {
+            const el = document.getElementById('subject-teachers-data');
+            if (el) subjectTeachersMap = JSON.parse(el.textContent);
+        } catch (e) { console.error("Error parsing subject teachers data", e); }
+
+        let state = { currentGroup: null, modified: false };
+        let teacherBusyMap = {}; // { day: { lessonNum: Set(teacherIds) } } — other groups only
+
+        function buildTeacherBusyMap(currentGroupId) {
+            teacherBusyMap = {};
+            for (const [gid, gdata] of Object.entries(allScheduleData)) {
+                if (String(gid) === String(currentGroupId)) continue;
+                for (const [day, dayData] of Object.entries(gdata)) {
+                    if (!teacherBusyMap[day]) teacherBusyMap[day] = {};
+                    for (const [lessonNum, lesson] of Object.entries(dayData)) {
+                        if (!teacherBusyMap[day][lessonNum]) teacherBusyMap[day][lessonNum] = new Set();
+                        if (lesson.teacher_id) teacherBusyMap[day][lessonNum].add(String(lesson.teacher_id));
+                    }
+                }
+            }
+        }
 
         // --- Event Listeners ---
 
@@ -203,11 +216,11 @@
                 elements.groupInfo.classList.remove('hidden');
                 elements.groupInfoText.textContent = `Редагування: ${this.options[this.selectedIndex].text}`;
 
+                buildTeacherBusyMap(groupId);
                 loadScheduleForGroup(groupId);
                 state.modified = false;
                 updateStatus('');
-                // Validate all times after loading
-                elements.scheduleContainer.querySelectorAll('.glass-panel').forEach(dayPanel => validateDayTimes(dayPanel));
+                elements.scheduleContainer.querySelectorAll('.glass-panel').forEach(p => validateDayTimes(p));
             } else {
                 elements.scheduleContainer.style.display = 'none';
                 elements.emptyState.style.display = 'flex';
@@ -215,12 +228,14 @@
             }
         });
 
-        // Delegate events
         elements.scheduleContainer.addEventListener('change', function (e) {
             const target = e.target;
 
             if (target.classList.contains('lesson-subject')) {
                 handleSubjectChange(target);
+                markModified();
+            } else if (target.classList.contains('lesson-teacher-select')) {
+                handleTeacherChange(target);
                 markModified();
             } else if (target.classList.contains('lesson-classroom')) {
                 markModified();
@@ -240,12 +255,11 @@
                 }
 
                 updateEndTime(target.closest('tr'));
-                validateDayTimes(target.closest('.glass-panel')); // Validate the whole day
+                validateDayTimes(target.closest('.glass-panel'));
                 markModified();
             }
         });
 
-        // Input event for real-time validation feedback (optional)
         elements.scheduleContainer.addEventListener('input', function (e) {
             if (e.target.classList.contains('lesson-duration-custom')) {
                 updateEndTime(e.target.closest('tr'));
@@ -260,17 +274,13 @@
             if (!state.currentGroup) return;
             if (!confirm('Ви впевнені? Це видалить весь розклад для цієї групи.')) return;
 
-            const inputs = elements.scheduleContainer.querySelectorAll('input, select');
-            inputs.forEach(input => {
-                if (input.classList.contains('lesson-start-time') || input.classList.contains('lesson-duration')) return;
-                input.value = '';
+            elements.scheduleContainer.querySelectorAll('.lesson-row').forEach(row => {
+                row.querySelector('.lesson-subject').value = '';
+                resetTeacherSelect(row);
+                row.querySelector('.lesson-classroom').value = '';
             });
-            elements.scheduleContainer.querySelectorAll('.lesson-subject').forEach(s => s.value = "");
 
-            // Автоматично зберігаємо порожній розклад
-            setTimeout(() => {
-                saveSchedule();
-            }, 100);
+            setTimeout(() => saveSchedule(), 100);
         });
 
         // --- Functions ---
@@ -281,10 +291,7 @@
             const durationCustom = row.querySelector('.lesson-duration-custom');
             const endTimeSpan = row.querySelector('.lesson-end-time');
 
-            if (!startTimeInput.value) {
-                endTimeSpan.textContent = "--:--";
-                return;
-            }
+            if (!startTimeInput.value) { endTimeSpan.textContent = "--:--"; return; }
 
             let duration = parseInt(durationSelect.value);
             if (isNaN(duration) || durationSelect.value === 'custom') {
@@ -298,23 +305,17 @@
             const endHours = String(date.getHours()).padStart(2, '0');
             const endMinutes = String(date.getMinutes()).padStart(2, '0');
             endTimeSpan.textContent = `${endHours}:${endMinutes}`;
-
-            // Store calculated end time details on the row for validation
-            row.dataset.endHours = endHours;
-            row.dataset.endMinutes = endMinutes;
             row.dataset.totalMinutesEnd = hours * 60 + minutes + duration;
         }
 
         function validateDayTimes(dayPanel) {
             const rows = Array.from(dayPanel.querySelectorAll('.lesson-row'));
-            let previousEndMinutes = -1; // time in minutes from midnight
+            let previousEndMinutes = -1;
 
             rows.forEach((row, index) => {
                 const startTimeInput = row.querySelector('.lesson-start-time');
                 const errorDiv = row.querySelector('.time-error');
-                const subjectVal = row.querySelector('.lesson-subject').value;
 
-                // Reset error
                 errorDiv.textContent = '';
                 errorDiv.classList.add('hidden');
                 startTimeInput.classList.remove('border-red-500', 'text-red-500');
@@ -324,8 +325,6 @@
                 const [hours, minutes] = startTimeInput.value.split(':').map(Number);
                 const currentStartMinutes = hours * 60 + minutes;
 
-                // Only validate if this row has a subject or we want strict time validation regardless
-                // Let's validate strictly if previous lesson exists
                 if (index > 0 && previousEndMinutes !== -1) {
                     const diff = currentStartMinutes - previousEndMinutes;
                     if (diff < 5) {
@@ -335,117 +334,187 @@
                     }
                 }
 
-                // Update previous end for next iteration
-                // We need to calculate this row's end time
                 const durationSelect = row.querySelector('.lesson-duration');
                 const durationCustom = row.querySelector('.lesson-duration-custom');
                 let duration = parseInt(durationSelect.value);
                 if (isNaN(duration) || durationSelect.value === 'custom') {
                     duration = parseInt(durationCustom.value) || 0;
                 }
-
-                // Only carry forward if this lesson actually exists/has duration
-                if (duration > 0) {
-                    previousEndMinutes = currentStartMinutes + duration;
-                } else {
-                    // If no valid duration, treat as if it doesn't exist for validation chain? 
-                    // Or just use start time? safely ignore.
-                }
+                if (duration > 0) previousEndMinutes = currentStartMinutes + duration;
             });
+        }
+
+        function resetTeacherSelect(row) {
+            const teacherSelect = row.querySelector('.lesson-teacher-select');
+            const teacherIdInput = row.querySelector('.lesson-teacher-id');
+            const warningDiv = row.querySelector('.teacher-busy-warning');
+            teacherSelect.innerHTML = '<option value="">Автоматично</option>';
+            teacherSelect.disabled = true;
+            teacherSelect.classList.remove('border-red-400');
+            teacherIdInput.value = '';
+            warningDiv.classList.add('hidden');
+            warningDiv.textContent = '';
+        }
+
+        function populateTeacherSelect(row, subjectId, preselectedTeacherId) {
+            const teacherSelect = row.querySelector('.lesson-teacher-select');
+            const teacherIdInput = row.querySelector('.lesson-teacher-id');
+
+            teacherSelect.innerHTML = '';
+            const teachers = subjectTeachersMap[subjectId] || [];
+
+            if (teachers.length === 0) {
+                teacherSelect.innerHTML = '<option value="">Автоматично</option>';
+                teacherSelect.disabled = true;
+                teacherIdInput.value = '';
+                return;
+            }
+
+            if (teachers.length === 1) {
+                // Single teacher — auto-select, disable
+                const t = teachers[0];
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name;
+                teacherSelect.appendChild(opt);
+                teacherSelect.value = t.id;
+                teacherSelect.disabled = true;
+                teacherSelect.classList.add('text-gray-700');
+                teacherIdInput.value = t.id;
+                checkTeacherBusy(row, String(t.id));
+            } else {
+                // Multiple teachers — show dropdown
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = '-- Виберіть викладача --';
+                teacherSelect.appendChild(placeholder);
+
+                teachers.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.name;
+                    teacherSelect.appendChild(opt);
+                });
+
+                teacherSelect.disabled = false;
+
+                if (preselectedTeacherId) {
+                    teacherSelect.value = String(preselectedTeacherId);
+                    teacherIdInput.value = teacherSelect.value;
+                    checkTeacherBusy(row, teacherSelect.value);
+                } else {
+                    teacherSelect.value = '';
+                    teacherIdInput.value = '';
+                }
+            }
         }
 
         function handleSubjectChange(selectElement) {
             const row = selectElement.closest('tr');
             if (!row) return;
+            const subjectId = selectElement.value;
 
-            const teacherInput = row.querySelector('.lesson-teacher');
+            if (!subjectId) {
+                resetTeacherSelect(row);
+                return;
+            }
+
+            populateTeacherSelect(row, subjectId, null);
+        }
+
+        function handleTeacherChange(selectElement) {
+            const row = selectElement.closest('tr');
             const teacherIdInput = row.querySelector('.lesson-teacher-id');
-            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            teacherIdInput.value = selectElement.value;
+            checkTeacherBusy(row, selectElement.value);
+        }
 
-            if (selectedOption.value) {
-                const teacherName = selectedOption.dataset.teacherName || '';
-                const teacherId = selectedOption.dataset.teacherId || '';
-                teacherInput.value = teacherName;
-                teacherIdInput.value = teacherId;
-            } else {
-                teacherInput.value = '';
-                teacherIdInput.value = '';
+        function checkTeacherBusy(row, teacherId) {
+            const warningDiv = row.querySelector('.teacher-busy-warning');
+            const teacherSelect = row.querySelector('.lesson-teacher-select');
+
+            warningDiv.classList.add('hidden');
+            warningDiv.textContent = '';
+            teacherSelect.classList.remove('border-red-400');
+
+            if (!teacherId) return;
+
+            const day = row.dataset.day;
+            const lessonNum = row.dataset.lesson;
+            const busySet = teacherBusyMap[day]?.[lessonNum];
+
+            if (busySet && busySet.has(String(teacherId))) {
+                const busyGroups = [];
+                for (const [gid, gdata] of Object.entries(allScheduleData)) {
+                    const lesson = gdata[day]?.[lessonNum];
+                    if (lesson && String(lesson.teacher_id) === String(teacherId)) {
+                        const opt = document.querySelector(`#groupSelect option[value="${gid}"]`);
+                        if (opt) busyGroups.push(opt.textContent.trim());
+                    }
+                }
+                const teacherName = teacherSelect.options[teacherSelect.selectedIndex]?.textContent || '';
+                warningDiv.textContent = `⚠ ${teacherName} вже зайнятий в: ${busyGroups.join(', ')}`;
+                warningDiv.classList.remove('hidden');
+                teacherSelect.classList.add('border-red-400');
             }
         }
 
         function loadScheduleForGroup(groupId) {
-            // 1. Reset all fields
             const allRows = elements.scheduleContainer.querySelectorAll('.lesson-row');
             allRows.forEach(row => {
                 row.querySelector('.lesson-subject').value = '';
-                row.querySelector('.lesson-teacher').value = '';
-                row.querySelector('.lesson-teacher-id').value = '';
+                resetTeacherSelect(row);
                 row.querySelector('.lesson-classroom').value = '';
-                // Don't reset time completely, revert to default attributes if needed, or keep last state
-                // Actually, let's keep the backend provided default times as "base", but overwrite if data exists
             });
 
-            // 2. Load data
             const groupData = allScheduleData[groupId];
             if (!groupData) {
-                // If no data, ensure default times are calculated
                 allRows.forEach(row => updateEndTime(row));
                 return;
-            };
+            }
 
             Object.keys(groupData).forEach(dayId => {
                 const dayLessons = groupData[dayId];
                 Object.keys(dayLessons).forEach(lessonNum => {
                     const lessonData = dayLessons[lessonNum];
                     const row = elements.scheduleContainer.querySelector(`.lesson-row[data-day="${dayId}"][data-lesson="${lessonNum}"]`);
+                    if (!row) return;
 
-                    if (row) {
-                        // Subject
-                        const subjectSelect = row.querySelector('.lesson-subject');
-                        subjectSelect.value = lessonData.subject_id || '';
+                    const subjectSelect = row.querySelector('.lesson-subject');
+                    const subjectId = String(lessonData.subject_id || '');
+                    const teacherId = String(lessonData.teacher_id || '');
 
-                        // Teacher
-                        if (subjectSelect.value) {
-                            const selectedOption = subjectSelect.querySelector(`option[value="${subjectSelect.value}"]`);
-                            if (selectedOption) {
-                                row.querySelector('.lesson-teacher').value = selectedOption.dataset.teacherName || '';
-                                row.querySelector('.lesson-teacher-id').value = selectedOption.dataset.teacherId || '';
-                            }
-                        }
-
-                        // Classroom
-                        row.querySelector('.lesson-classroom').value = lessonData.classroom || '';
-
-                        // Time
-                        if (lessonData.start_time) {
-                            row.querySelector('.lesson-start-time').value = lessonData.start_time;
-                        }
-
-                        // Duration
-                        if (lessonData.duration) {
-                            const duration = lessonData.duration;
-                            const durationSelect = row.querySelector('.lesson-duration');
-                            const customInput = row.querySelector('.lesson-duration-custom');
-
-                            // Check if standard
-                            const option = durationSelect.querySelector(`option[value="${duration}"]`);
-                            if (option) {
-                                durationSelect.value = duration;
-                                customInput.classList.add('hidden');
-                            } else {
-                                durationSelect.value = 'custom';
-                                customInput.value = duration;
-                                customInput.classList.remove('hidden');
-                            }
-                        }
-
-                        updateEndTime(row);
+                    subjectSelect.value = subjectId;
+                    if (subjectId) {
+                        populateTeacherSelect(row, subjectId, teacherId);
                     }
+
+                    row.querySelector('.lesson-classroom').value = lessonData.classroom || '';
+
+                    if (lessonData.start_time) {
+                        row.querySelector('.lesson-start-time').value = lessonData.start_time;
+                    }
+
+                    if (lessonData.duration) {
+                        const duration = lessonData.duration;
+                        const durationSelect = row.querySelector('.lesson-duration');
+                        const customInput = row.querySelector('.lesson-duration-custom');
+                        const option = durationSelect.querySelector(`option[value="${duration}"]`);
+                        if (option) {
+                            durationSelect.value = duration;
+                            customInput.classList.add('hidden');
+                        } else {
+                            durationSelect.value = 'custom';
+                            customInput.value = duration;
+                            customInput.classList.remove('hidden');
+                        }
+                    }
+
+                    updateEndTime(row);
                 });
             });
 
-            // Re-validate visual state
-            elements.scheduleContainer.querySelectorAll('.glass-panel').forEach(dayPanel => validateDayTimes(dayPanel));
+            elements.scheduleContainer.querySelectorAll('.glass-panel').forEach(p => validateDayTimes(p));
         }
 
         function saveSchedule() {
@@ -454,51 +523,41 @@
             updateStatus('Збереження...', 'blue');
             const scheduleToSave = {};
 
-            const rows = elements.scheduleContainer.querySelectorAll('.lesson-row');
-            rows.forEach(row => {
+            elements.scheduleContainer.querySelectorAll('.lesson-row').forEach(row => {
                 const day = row.dataset.day;
                 const lesson = row.dataset.lesson;
-                const subjectId = row.querySelector('.lesson-subject').value;
+                const subjectSelect = row.querySelector('.lesson-subject');
+                const subjectId = subjectSelect.value;
+                if (!subjectId) return;
 
-                if (subjectId) {
-                    if (!scheduleToSave[day]) scheduleToSave[day] = {};
+                if (!scheduleToSave[day]) scheduleToSave[day] = {};
 
-                    const subjectSelect = row.querySelector('.lesson-subject');
-                    const option = subjectSelect.options[subjectSelect.selectedIndex];
-                    const teacherId = row.querySelector('.lesson-teacher-id').value;
-                    const teacherName = row.querySelector('.lesson-teacher').value;
-                    const classroom = row.querySelector('.lesson-classroom').value;
-
-                    // Time Data
-                    const startTime = row.querySelector('.lesson-start-time').value;
-                    const durationSelect = row.querySelector('.lesson-duration');
-                    let duration = parseInt(durationSelect.value);
-                    if (isNaN(duration) || durationSelect.value === 'custom') {
-                        duration = parseInt(row.querySelector('.lesson-duration-custom').value) || 90;
-                    }
-
-                    scheduleToSave[day][lesson] = {
-                        subject_id: parseInt(subjectId),
-                        subject_name: option.text.trim(),
-                        teacher_id: teacherId ? parseInt(teacherId) : null,
-                        teacher_name: teacherName,
-                        start_time: startTime,
-                        duration: duration,
-                        classroom: classroom,
-                    };
+                const teacherSelect = row.querySelector('.lesson-teacher-select');
+                const teacherId = row.querySelector('.lesson-teacher-id').value;
+                const teacherName = teacherSelect.options[teacherSelect.selectedIndex]?.textContent || '';
+                const classroom = row.querySelector('.lesson-classroom').value;
+                const startTime = row.querySelector('.lesson-start-time').value;
+                const durationSelect = row.querySelector('.lesson-duration');
+                let duration = parseInt(durationSelect.value);
+                if (isNaN(duration) || durationSelect.value === 'custom') {
+                    duration = parseInt(row.querySelector('.lesson-duration-custom').value) || 90;
                 }
+
+                scheduleToSave[day][lesson] = {
+                    subject_id: parseInt(subjectId),
+                    subject_name: subjectSelect.options[subjectSelect.selectedIndex].text.trim(),
+                    teacher_id: teacherId ? parseInt(teacherId) : null,
+                    teacher_name: teacherName,
+                    start_time: startTime,
+                    duration: duration,
+                    classroom: classroom,
+                };
             });
 
             fetch('{% url "save_schedule" %}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    group_id: parseInt(state.currentGroup),
-                    schedule: scheduleToSave
-                })
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ group_id: parseInt(state.currentGroup), schedule: scheduleToSave })
             })
                 .then(r => r.json())
                 .then(res => {
@@ -506,14 +565,12 @@
                         state.modified = false;
                         updateStatus('✓ Збережено успішно!', 'green');
                         allScheduleData[state.currentGroup] = scheduleToSave;
+                        buildTeacherBusyMap(state.currentGroup);
                     } else {
                         updateStatus('❌ Помилка: ' + res.message, 'red');
                     }
                 })
-                .catch(err => {
-                    console.error(err);
-                    updateStatus('❌ Помилка з’єднання', 'red');
-                });
+                .catch(err => { console.error(err); updateStatus('❌ Помилка з\'єднання', 'red'); });
         }
 
         function markModified() {
@@ -522,22 +579,16 @@
         }
 
         function updateStatus(msg, color = 'gray') {
-            const colors = {
-                'green': 'text-green-500',
-                'red': 'text-red-500',
-                'blue': 'text-blue-500',
-                'amber': 'text-amber-500',
-                'gray': 'text-gray-400'
-            };
+            const colors = { green: 'text-green-500', red: 'text-red-500', blue: 'text-blue-500', amber: 'text-amber-500', gray: 'text-gray-400' };
             elements.autoSaveStatus.textContent = msg;
             elements.autoSaveStatus.className = `mb-6 text-sm font-bold ${colors[color] || colors.gray}`;
         }
 
-        // Initial init: Trigger empty state
         elements.groupSelect.value = "";
         elements.groupSelect.dispatchEvent(new Event('change'));
     });
 </script>
 
 {{ schedule_map|json_script:"schedule-data" }}
+{{ subject_teachers_map|json_script:"subject-teachers-data" }}
 {% endblock %}

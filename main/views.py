@@ -294,6 +294,336 @@ def user_delete_view(request, pk):
     return redirect('users_list')
 
 
+@role_required('admin')
+def users_csv_export(request):
+    """Експортує всіх користувачів у CSV файл."""
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="users_export.csv"'
+    response.write('\ufeff')  # BOM для коректного відкриття у Excel
+
+    writer = csv.writer(response)
+    writer.writerow(['full_name', 'email', 'role', 'group', 'phone', 'date_of_birth', 'address', 'student_id', 'is_active'])
+
+    users = User.objects.select_related('group').all()
+    for u in users:
+        writer.writerow([
+            u.full_name,
+            u.email,
+            u.role,
+            u.group.name if u.group else '',
+            u.phone or '',
+            u.date_of_birth.strftime('%Y-%m-%d') if u.date_of_birth else '',
+            u.address or '',
+            u.student_id or '',
+            '1' if u.is_active else '0',
+        ])
+    return response
+
+
+@role_required('admin')
+@require_POST
+def users_csv_import(request):
+    """Імпортує користувачів з CSV файлу. Обов'язкові поля: full_name, email, role."""
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file:
+        messages.error(request, "Файл не вибрано.")
+        return redirect('users_list')
+
+    if not csv_file.name.endswith('.csv'):
+        messages.error(request, "Завантажте файл у форматі .csv")
+        return redirect('users_list')
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')  # utf-8-sig знімає BOM
+    except UnicodeDecodeError:
+        try:
+            csv_file.seek(0)
+            decoded = csv_file.read().decode('cp1251')
+        except UnicodeDecodeError:
+            messages.error(request, "Не вдалося прочитати файл. Збережіть його в кодуванні UTF-8.")
+            return redirect('users_list')
+
+    reader = csv.DictReader(decoded.splitlines())
+
+    REQUIRED_FIELDS = {'full_name', 'email', 'role'}
+    VALID_ROLES = {'admin', 'teacher', 'student'}
+
+    if not reader.fieldnames or not REQUIRED_FIELDS.issubset(set(reader.fieldnames)):
+        missing = REQUIRED_FIELDS - set(reader.fieldnames or [])
+        messages.error(request, f"У CSV відсутні обов'язкові колонки: {', '.join(missing)}")
+        return redirect('users_list')
+
+    created_count = 0
+    skipped_rows = []
+
+    with transaction.atomic():
+        for line_num, row in enumerate(reader, start=2):
+            full_name = row.get('full_name', '').strip()
+            email = row.get('email', '').strip()
+            role = row.get('role', '').strip().lower()
+
+            # Валідація обов'язкових полів
+            if not full_name or not email or not role:
+                skipped_rows.append(f"Рядок {line_num}: порожні обов'язкові поля")
+                continue
+
+            if role not in VALID_ROLES:
+                skipped_rows.append(f"Рядок {line_num} ({email}): невалідна роль '{role}'")
+                continue
+
+            if User.objects.filter(email=email).exists():
+                skipped_rows.append(f"Рядок {line_num} ({email}): email вже існує")
+                continue
+
+            # Необов'язкові поля
+            password = row.get('password', '').strip() or 'ChangeMe123!'
+            group = None
+            group_name = row.get('group', '').strip()
+            if group_name:
+                group = StudyGroup.objects.filter(name=group_name).first()
+
+            phone = row.get('phone', '').strip() or None
+            address = row.get('address', '').strip() or None
+            student_id = row.get('student_id', '').strip() or None
+            is_active_raw = row.get('is_active', '1').strip()
+            is_active = is_active_raw not in ('0', 'false', 'False', 'ні', 'no')
+
+            dob_raw = row.get('date_of_birth', '').strip()
+            date_of_birth = None
+            if dob_raw:
+                for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y'):
+                    try:
+                        date_of_birth = datetime.strptime(dob_raw, fmt).date()
+                        break
+                    except ValueError:
+                        continue
+
+            User.objects.create_user(
+                email=email,
+                password=password,
+                full_name=full_name,
+                role=role,
+                group=group,
+                phone=phone,
+                address=address,
+                student_id=student_id,
+                is_active=is_active,
+                date_of_birth=date_of_birth,
+            )
+            created_count += 1
+
+    if created_count:
+        messages.success(request, f"Імпортовано {created_count} користувач(ів).")
+    if skipped_rows:
+        messages.warning(request, "Пропущено рядки: " + "; ".join(skipped_rows[:10]) +
+                         (f" ... та ще {len(skipped_rows) - 10}" if len(skipped_rows) > 10 else ""))
+    if not created_count and not skipped_rows:
+        messages.info(request, "CSV файл порожній або не містить даних.")
+
+    return redirect('users_list')
+
+
+# --- GROUPS CSV ---
+@role_required('admin')
+def groups_csv_export(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="groups_export.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['name', 'specialty', 'course', 'year_of_entry', 'graduation_year', 'is_active'])
+    for g in StudyGroup.objects.all().order_by('name'):
+        writer.writerow([
+            g.name,
+            g.specialty or '',
+            g.course or '',
+            g.year_of_entry or '',
+            g.graduation_year or '',
+            '1' if g.is_active else '0',
+        ])
+    return response
+
+
+@role_required('admin')
+@require_POST
+def groups_csv_import(request):
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file or not csv_file.name.endswith('.csv'):
+        messages.error(request, "Завантажте файл у форматі .csv")
+        return redirect('groups_list')
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        decoded = csv_file.read().decode('cp1251')
+
+    reader = csv.DictReader(decoded.splitlines())
+    if not reader.fieldnames or 'name' not in reader.fieldnames:
+        messages.error(request, "У CSV відсутня обов'язкова колонка: name")
+        return redirect('groups_list')
+
+    created, skipped = 0, []
+    with transaction.atomic():
+        for i, row in enumerate(reader, 2):
+            name = row.get('name', '').strip()
+            if not name:
+                skipped.append(f"Рядок {i}: порожня назва")
+                continue
+            if StudyGroup.objects.filter(name=name).exists():
+                skipped.append(f"Рядок {i}: '{name}' вже існує")
+                continue
+            course_raw = row.get('course', '').strip()
+            year_entry_raw = row.get('year_of_entry', '').strip()
+            grad_year_raw = row.get('graduation_year', '').strip()
+            is_active_raw = row.get('is_active', '1').strip()
+            StudyGroup.objects.create(
+                name=name,
+                specialty=row.get('specialty', '').strip(),
+                course=int(course_raw) if course_raw.isdigit() else None,
+                year_of_entry=int(year_entry_raw) if year_entry_raw.isdigit() else None,
+                graduation_year=int(grad_year_raw) if grad_year_raw.isdigit() else None,
+                is_active=is_active_raw not in ('0', 'false', 'False', 'ні', 'no'),
+            )
+            created += 1
+
+    if created:
+        messages.success(request, f"Імпортовано {created} груп(и).")
+    if skipped:
+        messages.warning(request, "Пропущено: " + "; ".join(skipped[:10]))
+    return redirect('groups_list')
+
+
+# --- SUBJECTS CSV ---
+@role_required('admin')
+def subjects_csv_export(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="subjects_export.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['name', 'code', 'description', 'credits', 'hours_total', 'hours_lectures', 'hours_practicals', 'semester', 'is_active'])
+    for s in Subject.objects.all().order_by('name'):
+        writer.writerow([
+            s.name, s.code or '', s.description or '',
+            s.credits or '', s.hours_total or '',
+            s.hours_lectures or '', s.hours_practicals or '',
+            s.semester or '', '1' if s.is_active else '0',
+        ])
+    return response
+
+
+@role_required('admin')
+@require_POST
+def subjects_csv_import(request):
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file or not csv_file.name.endswith('.csv'):
+        messages.error(request, "Завантажте файл у форматі .csv")
+        return redirect('subjects_list')
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        decoded = csv_file.read().decode('cp1251')
+
+    reader = csv.DictReader(decoded.splitlines())
+    if not reader.fieldnames or 'name' not in reader.fieldnames:
+        messages.error(request, "У CSV відсутня обов'язкова колонка: name")
+        return redirect('subjects_list')
+
+    created, skipped = 0, []
+    with transaction.atomic():
+        for i, row in enumerate(reader, 2):
+            name = row.get('name', '').strip()
+            if not name:
+                skipped.append(f"Рядок {i}: порожня назва")
+                continue
+            if Subject.objects.filter(name=name).exists():
+                skipped.append(f"Рядок {i}: '{name}' вже існує")
+                continue
+            def _int(val): return int(val) if str(val).strip().isdigit() else None
+            Subject.objects.create(
+                name=name,
+                code=row.get('code', '').strip(),
+                description=row.get('description', '').strip(),
+                credits=_int(row.get('credits', '')),
+                hours_total=_int(row.get('hours_total', '')),
+                hours_lectures=_int(row.get('hours_lectures', '')),
+                hours_practicals=_int(row.get('hours_practicals', '')),
+                semester=_int(row.get('semester', '')),
+                is_active=row.get('is_active', '1').strip() not in ('0', 'false', 'False', 'ні', 'no'),
+            )
+            created += 1
+
+    if created:
+        messages.success(request, f"Імпортовано {created} предмет(ів).")
+    if skipped:
+        messages.warning(request, "Пропущено: " + "; ".join(skipped[:10]))
+    return redirect('subjects_list')
+
+
+# --- CLASSROOMS CSV ---
+@role_required('admin')
+def classrooms_csv_export(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="classrooms_export.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    writer.writerow(['name', 'building', 'floor', 'capacity', 'type', 'equipment', 'is_active'])
+    for c in Classroom.objects.all().order_by('name'):
+        writer.writerow([
+            c.name, c.building or '', c.floor or '',
+            c.capacity or '', c.type or '',
+            c.equipment or '', '1' if c.is_active else '0',
+        ])
+    return response
+
+
+@role_required('admin')
+@require_POST
+def classrooms_csv_import(request):
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file or not csv_file.name.endswith('.csv'):
+        messages.error(request, "Завантажте файл у форматі .csv")
+        return redirect('classrooms_list')
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        decoded = csv_file.read().decode('cp1251')
+
+    reader = csv.DictReader(decoded.splitlines())
+    if not reader.fieldnames or 'name' not in reader.fieldnames:
+        messages.error(request, "У CSV відсутня обов'язкова колонка: name")
+        return redirect('classrooms_list')
+
+    VALID_TYPES = {'lecture', 'computer', 'lab', 'other', ''}
+    created, skipped = 0, []
+    with transaction.atomic():
+        for i, row in enumerate(reader, 2):
+            name = row.get('name', '').strip()
+            if not name:
+                skipped.append(f"Рядок {i}: порожня назва")
+                continue
+            if Classroom.objects.filter(name=name).exists():
+                skipped.append(f"Рядок {i}: '{name}' вже існує")
+                continue
+            def _int(val): return int(val) if str(val).strip().isdigit() else None
+            room_type = row.get('type', 'other').strip()
+            if room_type not in VALID_TYPES:
+                room_type = 'other'
+            Classroom.objects.create(
+                name=name,
+                building=row.get('building', '').strip(),
+                floor=_int(row.get('floor', '')),
+                capacity=_int(row.get('capacity', '')),
+                type=room_type or 'other',
+                equipment=row.get('equipment', '').strip(),
+                is_active=row.get('is_active', '1').strip() not in ('0', 'false', 'False', 'ні', 'no'),
+            )
+            created += 1
+
+    if created:
+        messages.success(request, f"Імпортовано {created} аудиторій.")
+    if skipped:
+        messages.warning(request, "Пропущено: " + "; ".join(skipped[:10]))
+    return redirect('classrooms_list')
+
+
 # --- GROUPS ---
 @role_required('admin')
 def groups_list_view(request):
@@ -492,33 +822,21 @@ def set_weekly_schedule_view(request):
     subjects = Subject.objects.all().order_by('name')
     subject_data = []
     subject_teachers_map = {}
-    
+
     for subject in subjects:
         teachers = TeachingAssignment.objects.filter(
             subject=subject
         ).select_related('teacher').values_list('teacher_id', 'teacher__full_name').distinct()
         teachers_list = list(teachers)
-        
-        if subject.id not in subject_teachers_map:
-            subject_teachers_map[subject.id] = teachers_list
-        
+
         if teachers_list:
-            if len(teachers_list) > 1:
-                for tid, tname in teachers_list:
-                    subject_data.append({
-                        'id': subject.id,
-                        'name': f"{subject.name} ({tname})",
-                        'teacher_id': tid,
-                        'teacher_name': tname
-                    })
-            else:
-                tid, tname = teachers_list[0]
-                subject_data.append({
-                    'id': subject.id,
-                    'name': subject.name,
-                    'teacher_id': tid,
-                    'teacher_name': tname
-                })
+            subject_teachers_map[subject.id] = [
+                {'id': tid, 'name': tname} for tid, tname in teachers_list
+            ]
+            subject_data.append({
+                'id': subject.id,
+                'name': subject.name,
+            })
 
     lesson_times = {
         1: ("08:30", "10:05"),
@@ -1778,67 +2096,6 @@ def get_evaluation_types_api(request):
 # --- STUDENTS MANAGEMENT (EXTRA) ---
 
 @login_required
-def students_list_view(request):
-    search_query = request.GET.get('search', '')
-    group_id = request.GET.get('group', '')
-    
-    students = User.objects.filter(role='student').select_related('group')
-    
-    if search_query:
-        students = students.filter(full_name__icontains=search_query)
-        
-    if group_id:
-        students = students.filter(group_id=group_id)
-        
-    students = students.order_by('group__name', 'full_name')
-    groups = StudyGroup.objects.all()
-
-    paginator = Paginator(students, 25)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
-    return render(request, 'students.html', {
-        'students': page_obj,
-        'page_obj': page_obj,
-        'groups': groups,
-        'active_page': 'students'
-    })
-
-@login_required
-@require_http_methods(["POST"])
-def student_add(request):
-    full_name = request.POST.get('full_name')
-    group_id = request.POST.get('group_id')
-    email = request.POST.get('email')
-    password = request.POST.get('password')
-
-    if full_name and email and password:
-        if User.objects.filter(email=email).exists():
-            messages.error(request, f"Користувач з email {email} вже існує.")
-        else:
-            try:
-                group = StudyGroup.objects.get(pk=group_id) if group_id else None
-                
-                # Якщо User менеджер налаштований через create_user (AbstractBaseUser):
-                # User.objects.create_user(email=email, password=password, full_name=full_name, role='student', group=group)
-                
-                # Або старий метод, якщо ви не переписали менеджер (але ми домовилися що переписали)
-                # Тут використовуємо create_user, бо це правильно для Django Auth
-                User.objects.create_user(
-                    email=email,
-                    password=password,
-                    full_name=full_name,
-                    role='student',
-                    group=group
-                )
-                messages.success(request, f"Студента {full_name} успішно додано.")
-            except Exception as e:
-                messages.error(request, f"Помилка при створенні: {e}")
-    else:
-        messages.error(request, "Заповніть всі обов'язкові поля.")
-
-    return redirect('students_list')
-
-
 @login_required
 def timeline_schedule_view(request):
     user = request.user
@@ -1922,15 +2179,6 @@ def timeline_schedule_view(request):
         'all_groups': StudyGroup.objects.all().order_by('name') if user.role != 'student' else None,
         'active_page': 'schedule'
     })
-
-@login_required
-@require_http_methods(["POST"])
-def student_delete(request, pk):
-    student = get_object_or_404(User, pk=pk, role='student')
-    name = student.full_name
-    student.delete()
-    messages.success(request, f"Студента {name} видалено.")
-    return redirect('students_list')
 
 @require_POST
 @role_required('teacher')

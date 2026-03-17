@@ -27,18 +27,26 @@ urlpatterns = [
     # Управління Користувачами (CRUD)
     path('users/edit/<int:pk>/', views.user_edit_view, name='user_edit'),
     path('users/delete/<int:pk>/', views.user_delete_view, name='user_delete'),
+    path('users/export/', views.users_csv_export, name='users_csv_export'),
+    path('users/import/', views.users_csv_import, name='users_csv_import'),
     # Управління Групами (CRUD)
     path('groups/', views.groups_list_view, name='groups_list'),
     path('groups/add/', views.group_add_view, name='group_add'),
     path('groups/delete/<int:pk>/', views.group_delete_view, name='group_delete'),
+    path('groups/export/', views.groups_csv_export, name='groups_csv_export'),
+    path('groups/import/', views.groups_csv_import, name='groups_csv_import'),
     # Управління Предметами (CRUD)
     path('subjects/', views.subjects_list_view, name='subjects_list'),
     path('subjects/add/', views.subject_add_view, name='subject_add'),
     path('subjects/delete/<int:pk>/', views.subject_delete_view, name='subject_delete'),
+    path('subjects/export/', views.subjects_csv_export, name='subjects_csv_export'),
+    path('subjects/import/', views.subjects_csv_import, name='subjects_csv_import'),
     # Управління Аудиторіями (CRUD)
     path('classrooms/', views.classrooms_list_view, name='classrooms_list'),
     path('classrooms/add/', views.classroom_add_view, name='classroom_add'),
     path('classrooms/delete/<int:pk>/', views.classroom_delete_view, name='classroom_delete'),
+    path('classrooms/export/', views.classrooms_csv_export, name='classrooms_csv_export'),
+    path('classrooms/import/', views.classrooms_csv_import, name='classrooms_csv_import'),
     # =========================
     # 3. ЗВІТИ (CSV)
     # =========================
@@ -72,10 +80,6 @@ urlpatterns = [
     # =========================
     # 5. СТУДЕНТ
     # =========================
-# Студенти
-    path('students/', views.students_list_view, name='students_list'), # Важливо: name='students_list'
-    path('students/add/', views.student_add, name='student_add'),
-    path('students/delete/<int:pk>/', views.student_delete, name='student_delete'),
     path('student/grades/', views.student_grades_view, name='student_grades'),
     path('student/attendance/', views.student_attendance_view, name='student_attendance'),
     path('student/dashboard/', views.student_dashboard_view, name='student_dashboard'),

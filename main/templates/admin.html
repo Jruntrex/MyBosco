@@ -14,7 +14,7 @@
             <div class="text-[10px] text-bodyText/60 mt-2 group-hover:text-primary transition-colors">Переглянути →</div>
         </a>
 
-        <a href="{% url 'students_list' %}" class="glass-panel rounded-2xl p-6 border-l-[6px] border-l-accent hover:-translate-y-1 transition-transform duration-300 shadow-glass animate-fade-in opacity-0 delay-100 group"
+        <a href="{% url 'users_list' %}?role=student" class="glass-panel rounded-2xl p-6 border-l-[6px] border-l-accent hover:-translate-y-1 transition-transform duration-300 shadow-glass animate-fade-in opacity-0 delay-100 group"
             style="animation-fill-mode: forwards; animation-delay: 100ms;">
             <div class="text-xs uppercase tracking-wider text-bodyText mb-2 font-medium group-hover:text-accent transition-colors">Студенти</div>
             <div class="text-4xl font-bold text-dark mb-1">{{ student_count|default:0 }}</div>
