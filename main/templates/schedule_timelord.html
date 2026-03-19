@@ -1,48 +1,50 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load journal_filters %}
 
 {% block title %}Розклад занять - MyBosco TimeLord{% endblock %}
 
-{% block extra_css %}
+{% block extra_head %}
 <style>
     .classic-schedule-container {
-        background: white;
-        padding: 1.5rem;
+        background: rgb(var(--bg-surface));
+        border: 1px solid rgb(var(--border-color));
         border-radius: 1.5rem;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
         margin-top: 1.5rem;
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 24px -4px rgba(0,0,0,0.08);
     }
 
     .classic-table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 8px;
+        border-spacing: 0 6px;
     }
 
     .classic-table th {
-        padding: 12px 15px;
-        color: white;
+        padding: 10px 14px;
+        color: rgb(var(--text-muted));
         font-weight: 700;
         text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
     }
 
     .classic-table tr:not(thead tr) {
-        background: #f8fafc;
-        transition: all 0.3s ease;
+        background: rgb(var(--bg-main));
+        transition: all 0.2s ease;
+        border-radius: 12px;
     }
 
     .classic-table tr:not(thead tr):hover {
-        background: #f1f5f9;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        background: rgb(var(--bg-surface));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
     }
 
     .classic-table td {
-        padding: 15px;
+        padding: 14px;
         vertical-align: middle;
+        color: rgb(var(--text-main));
     }
 
     .classic-table td:first-child {
@@ -65,25 +67,25 @@
 
     .lesson-num {
         font-weight: 800;
-        color: #1e293b;
+        color: rgb(var(--text-main));
         font-size: 1.1rem;
     }
 
     .lesson-time {
         font-weight: 600;
         font-size: 0.8rem;
-        color: #64748b;
+        color: rgb(var(--text-muted));
     }
 
     .subject-cell {
         font-weight: 800;
-        color: #0f172a;
+        color: rgb(var(--text-main));
         font-size: 1rem;
     }
 
     .classroom-badge {
-        background: #dcfce7;
-        color: #166534;
+        background: rgba(16,185,129,0.12);
+        color: rgb(var(--color-success));
         padding: 4px 12px;
         border-radius: 9999px;
         font-weight: 700;
@@ -91,67 +93,24 @@
     }
 
     .teacher-name {
-        color: #64748b;
+        color: rgb(var(--text-muted));
         font-weight: 600;
         font-size: 0.85rem;
     }
-
-    .header-bar {
-        background: white;
-        padding: 1.5rem 2rem;
-        border-radius: 1.5rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-
-    .btn-premium {
-        background: #1e293b;
-        color: white;
-        padding: 10px 24px;
-        border-radius: 12px;
-        font-weight: 700;
-        transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-premium:hover {
-        background: #0f172a;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-nav {
-        background: white;
-        border: 1px solid #e2e8f0;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-weight: 700;
-        color: #64748b;
-        transition: all 0.2s;
-    }
-
-    .btn-nav:hover {
-        background: #f8fafc;
-        color: #1e293b;
-        border-color: #cbd5e1;
-    }
 </style>
-{% endblock %}
+{% endblock extra_head %}
 
 {% block header_title %}ГРАФІК ЗАНЯТЬ{% endblock %}
 
 {% block content %}
 <div class="animate-fade-in">
     <!-- Top Header -->
-    <div class="header-bar">
+    <div class="bg-surface rounded-2xl border border-border p-5 flex justify-between items-center mb-6 shadow-sm">
         <div class="flex items-center gap-6">
-            <div class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-xl shadow-lg shadow-blue-100">
+            <div class="bg-primary text-white px-5 py-2 rounded-xl font-bold text-lg shadow-sm">
                 {% if group %}{{ group.name }}{% else %}Оберіть групу{% endif %}
             </div>
-            <div class="text-gray-500 font-semibold text-lg">
+            <div class="text-mutedText font-semibold text-base">
                 {{ start_of_week|date:"d.m" }} — {{ end_of_week|date:"d.m.Y" }}
             </div>
         </div>
@@ -159,14 +118,15 @@
         <div class="flex gap-4 items-center">
             <div class="flex gap-1">
                 <a href="?week={{ week_shift|add:-1 }}{% if group %}&group_id={{ group.id }}{% endif %}"
-                    class="btn-nav">«</a>
-                <a href="?week=0{% if group %}&group_id={{ group.id }}{% endif %}" class="btn-nav">Сьогодні</a>
+                    class="px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-mainText transition-all">«</a>
+                <a href="?week=0{% if group %}&group_id={{ group.id }}{% endif %}"
+                    class="px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-mainText transition-all">Сьогодні</a>
                 <a href="?week={{ week_shift|add:1 }}{% if group %}&group_id={{ group.id }}{% endif %}"
-                    class="btn-nav">»</a>
+                    class="px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-mainText transition-all">»</a>
             </div>
 
             <select onchange="location.href='?week={{ week_shift }}&group_id=' + this.value"
-                class="rounded-xl border-gray-200 font-bold px-4 py-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                class="rounded-xl border-border bg-surface text-mainText font-bold px-4 py-2 focus:ring-0 focus:border-primary transition-colors text-sm">
                 <option value="">-- ОБЕРІТЬ ГРУПУ --</option>
                 {% for g in all_groups %}
                 <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>Група: {{ g.name }}
@@ -175,7 +135,8 @@
             </select>
 
             {% if user.role == 'admin' %}
-            <a href="{% url 'schedule_editor' %}" class="btn-premium">РЕДАГУВАТИ ✨</a>
+            <a href="{% url 'schedule_editor' %}"
+                class="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-sm">РЕДАГУВАТИ ✨</a>
             {% endif %}
         </div>
     </div>

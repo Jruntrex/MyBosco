@@ -186,6 +186,20 @@ class ScheduleSlotForm(forms.Form):
     classroom_id = forms.IntegerField(required=False)
     start_time = forms.TimeField(input_formats=['%H:%M'])
     duration = forms.IntegerField(min_value=1, initial=50)
+class EvaluationTypeForm(ModelForm):
+    """Форма для додавання типу оцінювання."""
+
+    class Meta:
+        model = EvaluationType
+        fields = ['name', 'weight_percent', 'description', 'order', 'is_homework_type']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Наприклад: Лекція, Практика...'}),
+            'weight_percent': forms.NumberInput(attrs={'placeholder': '0', 'min': '0', 'max': '100', 'step': '0.01'}),
+            'description': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Опис (необов\'язково)'}),
+            'order': forms.NumberInput(attrs={'min': '0'}),
+        }
+
+
 class ProfileForm(forms.ModelForm):
     """Форма для самостійного редагування профілю користувачем."""
     class Meta:

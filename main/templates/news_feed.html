@@ -3,6 +3,7 @@
 
 {% block title %}Стрічка новин{% endblock %}
 {% block header_title %}Стрічка новин{% endblock %}
+{% block page_title_heading %}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -36,7 +37,7 @@
                     <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
                     <span class="text-white/60 text-xs font-semibold uppercase tracking-wider">MyBosco</span>
                 </div>
-                <h1 class="text-2xl font-black text-white leading-tight">Стрічка новин</h1>
+                <h1 class="text-4xl font-black text-white leading-tight">Стрічка новин</h1>
                 <p class="text-white/65 text-sm mt-0.5">Оголошення, події та новини</p>
             </div>
             <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex flex-col items-center justify-center">
@@ -47,44 +48,58 @@
     </div>
 
     <!-- Filter tabs -->
-    <div class="flex flex-wrap items-center bg-surface rounded-2xl border border-border px-2 py-1.5 mb-6 gap-1 shadow-sm overflow-x-auto">
-        <a href="?tab=all"
-            class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
-            {% if active_tab == 'all' %}bg-primary/10 text-primary{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-            Всі
-        </a>
-        <a href="?tab=general"
-            class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
-            {% if active_tab == 'general' %}bg-indigo-500/10 text-indigo-600{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
-            <span class="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></span>
-            Загальні
-        </a>
+    <div class="flex items-center bg-surface rounded-2xl border border-border px-2 py-1.5 mb-6 shadow-sm">
+        <!-- Scrollable tabs -->
+        <div class="flex items-center gap-1 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
+            <a href="?tab=all"
+                class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
+                {% if active_tab == 'all' %}bg-primary/10 text-primary{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                Всі
+            </a>
+            <a href="?tab=general"
+                class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
+                {% if active_tab == 'general' %}bg-indigo-500/10 text-indigo-600{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
+                <span class="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></span>
+                Загальні
+            </a>
 
-        {% if user.role == 'student' and student_group %}
-        <a href="?tab=group"
-            class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
-            {% if active_tab == 'group' %}bg-green-600/10 text-green-600{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
-            <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
-            {{ student_group.name }}
-        </a>
-        {% endif %}
+            {% if user.role == 'student' and student_group %}
+            <a href="?tab=group"
+                class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
+                {% if active_tab == 'group' %}bg-green-600/10 text-green-600{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
+                <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                {{ student_group.name }}
+            </a>
+            {% endif %}
 
-        {% if teacher_groups %}
-        {% for g in teacher_groups %}
-        <a href="?tab=group_{{ g.id }}"
-            class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
-            {% if active_tab == 'group_'|add:g.id|stringformat:'s' %}bg-green-600/10 text-green-600{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
-            <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
-            {{ g.name }}
-        </a>
-        {% endfor %}
+            {% if teacher_groups %}
+            {% for g in teacher_groups %}
+            <a href="?tab=group_{{ g.id }}"
+                class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all
+                {% if active_tab == 'group_'|add:g.id|stringformat:'s' %}bg-green-600/10 text-green-600{% else %}text-mutedText hover:bg-background hover:text-mainText{% endif %}">
+                <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                {{ g.name }}
+            </a>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- New post button — always on the right -->
+        {% if user.role == 'teacher' or user.role == 'admin' %}
+        <div class="flex-shrink-0 pl-2 border-l border-border ml-1">
+            <button onclick="toggleCreatePost()" id="toggle-create-btn"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all text-mutedText hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20">
+                <svg id="toggle-create-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Новий допис
+            </button>
+        </div>
         {% endif %}
     </div>
 
     <!-- Create Post (teacher/admin only) -->
     {% if user.role == 'teacher' or user.role == 'admin' %}
-    <div class="bg-surface rounded-2xl border border-border shadow-sm mb-6 overflow-hidden" id="create-post-card">
+    <div class="bg-surface rounded-2xl border border-border shadow-sm mb-6 overflow-hidden" id="create-post-card" style="display:none">
         <!-- Card header -->
         <div class="flex items-center gap-3 px-5 py-4 border-b border-border bg-primary/5">
             <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-base flex-shrink-0 shadow-sm">
@@ -356,6 +371,11 @@
             createForm.reset();
             setPostType('general');
             document.getElementById('post-content').value = '';
+            // Collapse the create form after publishing
+            const card = document.getElementById('create-post-card');
+            const icon = document.getElementById('toggle-create-icon');
+            if (card) { card.style.display = 'none'; }
+            if (icon) icon.style.transform = '';
         });
     }
 
@@ -514,6 +534,16 @@
             el.style.opacity    = '0';
             setTimeout(() => el.remove(), 200);
         }
+    }
+
+    // ── Toggle create post ────────────────────────────────────────────────────
+    function toggleCreatePost() {
+        const card = document.getElementById('create-post-card');
+        const icon = document.getElementById('toggle-create-icon');
+        if (!card) return;
+        const isHidden = getComputedStyle(card).display === 'none';
+        card.style.display = isHidden ? 'block' : 'none';
+        if (icon) icon.style.transform = isHidden ? 'rotate(45deg)' : '';
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -2,10 +2,34 @@
 {% load journal_filters %}
 
 {% block title %}Управління користувачами{% endblock %}
-
-{% block header_title %}Управління Користувачами{% endblock %}
+{% block header_title %}Користувачі{% endblock %}
+{% block page_title_heading %}{% endblock %}
 
 {% block content %}
+<!-- Hero banner -->
+<div class="relative overflow-hidden rounded-2xl mb-6 shadow-lg">
+    <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 via-blue-500 to-violet-500"></div>
+    <div class="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5"></div>
+    <div class="absolute -bottom-8 left-8 w-48 h-48 rounded-full bg-white/5"></div>
+    <div class="relative px-6 py-5 flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6a2 2 0 00-2-2H5a2 2 0 00-2 2v13M13 19V3a2 2 0 00-2-2H9a2 2 0 00-2 2v16M18 19V9a2 2 0 00-2-2h-2a2 2 0 00-2 2v10"/>
+                </svg>
+                <span class="text-white/60 text-xs font-semibold uppercase tracking-wider">MyBosco Admin</span>
+            </div>
+            <h1 class="text-4xl font-black text-white leading-tight">Управління Користувачами</h1>
+            <p class="text-white/65 text-sm mt-0.5">Перегляд та адміністрування облікових записів</p>
+        </div>
+        <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+        </div>
+    </div>
+</div>
+
 <div class="card-bento min-h-[600px] pb-10">
     <div class="flex flex-wrap justify-end items-center gap-3 mb-8">
         <!-- Експорт CSV -->

@@ -3,8 +3,29 @@
 
 {% block title %}Уроки{% endblock %}
 {% block header_title %}Мої Уроки{% endblock %}
+{% block page_title_heading %}{% endblock %}
 
 {% block content %}
+<!-- Hero banner -->
+<div class="relative overflow-hidden rounded-2xl mb-6 shadow-lg">
+    <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 via-blue-500 to-violet-500"></div>
+    <div class="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5"></div>
+    <div class="absolute -bottom-8 left-8 w-48 h-48 rounded-full bg-white/5"></div>
+    <div class="relative px-6 py-5 flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                <span class="text-white/60 text-xs font-semibold uppercase tracking-wider">MyBosco</span>
+            </div>
+            <h1 class="text-4xl font-black text-white leading-tight">Мої Уроки</h1>
+            <p class="text-white/65 text-sm mt-0.5">Перегляд занять та навчальних матеріалів</p>
+        </div>
+        <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+    </div>
+</div>
+
 <div class="space-y-6">
 
     <!-- ═══ STATS ROW ═══ -->
@@ -215,7 +236,7 @@
                 {% for lesson in date_group.list %}
 
                 {% with ci=lesson.subject.id|modulo:6 %}
-                <div class="lesson-row flex items-center gap-3 md:gap-4 bg-surface border border-border rounded-2xl px-4 py-3 md:px-5 md:py-4
+                <div class="lesson-row flex items-center gap-3 md:gap-0 md:grid md:grid-cols-[6px_88px_1fr_1.5fr_auto] bg-surface border border-border rounded-2xl px-4 py-3 md:px-5 md:py-4
                             hover:border-primary/30 hover:shadow-md transition-all duration-200 group cursor-pointer
                             {% if lesson.is_cancelled %}opacity-50{% endif %}"
                      data-topic="{{ lesson.topic|lower }}"
@@ -229,18 +250,34 @@
                     </div>
 
                     <!-- Time -->
-                    <div class="w-14 flex-shrink-0 text-center">
+                    <div class="w-14 md:w-auto flex-shrink-0 text-center md:px-3">
                         <p class="text-sm font-black text-mainText tabular-nums leading-tight">{{ lesson.start_time|time:"H:i" }}</p>
                         <p class="text-[11px] text-mutedText tabular-nums">{{ lesson.end_time|time:"H:i" }}</p>
                     </div>
 
-                    <!-- Subject + Topic + Badges -->
-                    <div class="flex-1 min-w-0">
+                    <!-- Div A: Subject name + teacher/group info -->
+                    <div class="flex-1 min-w-0 md:px-3 md:flex md:flex-col md:justify-center">
                         <p class="text-sm font-bold text-mainText truncate">{{ lesson.subject.name }}</p>
-                        <p class="text-xs text-mutedText italic truncate mt-0.5">{{ lesson.topic|default:"Тема не вказана" }}</p>
+                        {% if user.role == 'teacher' %}
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="px-2.5 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold inline-flex">
+                                    {{ lesson.group.name }}
+                                </span>
+                                {% if lesson.classroom %}
+                                <span class="text-xs text-mutedText hidden md:block whitespace-nowrap">{{ lesson.classroom.name }}</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="text-xs text-mutedText truncate max-w-[120px] mt-0.5 block">{{ lesson.teacher.full_name|format_teacher_short }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Div B: Topic + badges (hidden on mobile, visible on md+) -->
+                    <div class="hidden md:flex md:flex-col md:justify-center md:min-w-0 md:px-3">
+                        <p class="text-xs text-mutedText italic truncate">{{ lesson.topic|default:"Тема не вказана" }}</p>
 
                         <!-- Badges row -->
-                        <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                             {% if lesson.is_cancelled %}
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-500 rounded-full text-[10px] font-bold">
                                 <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -292,17 +329,9 @@
                         </div>
                     </div>
 
-                    <!-- Right: role-specific meta + action -->
-                    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                        {% if user.role == 'teacher' %}
-                            <span class="px-2.5 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold hidden sm:inline-flex">
-                                {{ lesson.group.name }}
-                            </span>
-                            {% if lesson.classroom %}
-                            <span class="text-xs text-mutedText hidden lg:block whitespace-nowrap">{{ lesson.classroom.name }}</span>
-                            {% endif %}
-                        {% else %}
-                            <span class="text-xs text-mutedText hidden md:block truncate max-w-[120px]">{{ lesson.teacher.full_name|format_teacher_short }}</span>
+                    <!-- Right: action button + homework icon -->
+                    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0 md:px-3">
+                        {% if user.role == 'student' %}
                             {% if lesson.homework %}
                                 {% if lesson.id in submission_lesson_ids %}
                                 <div class="w-8 h-8 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center flex-shrink-0">
@@ -316,9 +345,9 @@
                             {% endif %}
                         {% endif %}
 
-                        <!-- Hover action button -->
+                        <!-- Action button -->
                         <a href="{% url 'lesson_detail' lesson.id %}" onclick="event.stopPropagation()"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-mutedText hover:border-primary hover:text-primary transition-all opacity-0 group-hover:opacity-100 whitespace-nowrap">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-mutedText hover:border-primary hover:text-primary transition-all opacity-0 group-hover:opacity-100 md:opacity-100 whitespace-nowrap">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -366,7 +395,7 @@
                 {% if subj_group.list %}
                 {% with hw_w=subj_group.list.0|get_hw_weight:hw_weights %}
                 {% if hw_w %}
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl text-[10px] font-black flex-shrink-0" title="Вага Домашнього Завдання у загальній оцінці з предмету">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary rounded-xl text-[10px] font-black flex-shrink-0" title="Вага Домашнього Завдання у загальній оцінці з предмету">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
                     Домашнє Завдання {{ hw_w|floatformat:0 }}% від оцінки
                 </span>
@@ -391,7 +420,7 @@
                     {% if grp_group.list %}
                     {% with hw_w=grp_group.list.0|get_hw_weight:hw_weights %}
                     {% if hw_w %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg text-[10px] font-black ml-1" title="Вага Домашнього Завдання у загальній оцінці">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary rounded-lg text-[10px] font-black ml-1" title="Вага Домашнього Завдання у загальній оцінці">
                         Дом. зав. {{ hw_w|floatformat:0 }}%
                     </span>
                     {% endif %}
@@ -401,7 +430,7 @@
                 <div class="space-y-2 pl-4 border-l-2 border-border/50">
                 {% for lesson in grp_group.list %}
                 {% with sci=lesson.subject.id|modulo:6 %}
-                <div class="lesson-row-subj flex items-center gap-3 md:gap-4 bg-surface border border-border rounded-2xl px-4 py-3 md:px-5 md:py-4
+                <div class="lesson-row-subj flex items-center gap-3 md:gap-0 md:grid md:grid-cols-[6px_100px_1fr_1.5fr_auto] bg-surface border border-border rounded-2xl px-4 py-3 md:px-5 md:py-4
                             hover:border-primary/30 hover:shadow-md transition-all duration-200 group cursor-pointer
                             {% if lesson.is_cancelled %}opacity-50{% endif %}"
                      data-topic="{{ lesson.topic|lower }}"
@@ -415,17 +444,29 @@
                     </div>
 
                     <!-- Date + Time -->
-                    <div class="w-20 md:w-24 flex-shrink-0 text-center">
+                    <div class="w-20 md:w-auto flex-shrink-0 text-center md:px-3">
                         <p class="text-[11px] text-mutedText font-semibold tabular-nums leading-tight">{{ lesson.date|date:"d.m.Y" }}</p>
                         <p class="text-sm font-black text-mainText tabular-nums leading-tight mt-0.5">{{ lesson.start_time|time:"H:i" }}</p>
                         <p class="text-[11px] text-mutedText tabular-nums">{{ lesson.end_time|time:"H:i" }}</p>
                     </div>
 
-                    <!-- Topic + Badges -->
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-bold text-mainText truncate">{{ lesson.topic|default:"Тема не вказана" }}</p>
-                        <p class="text-xs text-mutedText italic truncate mt-0.5">{{ lesson.date|date:"l" }}</p>
-                        <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <!-- Div A: Subject name (in by-subject view this is the group/classroom info) -->
+                    <div class="flex-1 min-w-0 md:px-3 md:flex md:flex-col md:justify-center">
+                        <p class="text-sm font-bold text-mainText truncate">{{ lesson.subject.name }}</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="px-2.5 py-1 bg-primary/10 text-primary rounded-xl text-xs font-bold inline-flex">
+                                {{ lesson.group.name }}
+                            </span>
+                            {% if lesson.classroom %}
+                            <span class="text-xs text-mutedText hidden md:block whitespace-nowrap">{{ lesson.classroom.name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Div B: Topic + badges (hidden on mobile, visible on md+) -->
+                    <div class="hidden md:flex md:flex-col md:justify-center md:min-w-0 md:px-3">
+                        <p class="text-xs text-mutedText italic truncate">{{ lesson.topic|default:"Тема не вказана" }}</p>
+                        <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                             {% if lesson.is_cancelled %}
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-500 rounded-full text-[10px] font-bold">
                                 <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -452,13 +493,10 @@
                         </div>
                     </div>
 
-                    <!-- Right: classroom + action -->
-                    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                        {% if lesson.classroom %}
-                        <span class="text-xs text-mutedText hidden lg:block whitespace-nowrap">{{ lesson.classroom.name }}</span>
-                        {% endif %}
+                    <!-- Right: action button -->
+                    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0 md:px-3">
                         <a href="{% url 'lesson_detail' lesson.id %}" onclick="event.stopPropagation()"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-mutedText hover:border-primary hover:text-primary transition-all opacity-0 group-hover:opacity-100 whitespace-nowrap">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-mutedText hover:border-primary hover:text-primary transition-all opacity-0 group-hover:opacity-100 md:opacity-100 whitespace-nowrap">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -480,7 +518,7 @@
             <div class="space-y-2">
                 {% for lesson in subj_group.list %}
                 {% with sci=lesson.subject.id|modulo:6 %}
-                <div class="lesson-row-subj flex items-center gap-3 md:gap-4 bg-surface border border-border rounded-2xl px-4 py-3 md:px-5 md:py-4
+                <div class="lesson-row-subj flex items-center gap-3 md:gap-0 md:grid md:grid-cols-[6px_100px_1fr_1.5fr_auto] bg-surface border border-border rounded-2xl px-4 py-3 md:px-5 md:py-4
                             hover:border-primary/30 hover:shadow-md transition-all duration-200 group cursor-pointer
                             {% if lesson.is_cancelled %}opacity-50{% endif %}"
                      data-topic="{{ lesson.topic|lower }}"
@@ -492,16 +530,23 @@
                         {% elif sci == 3 %}bg-gradient-to-b from-amber-400 to-amber-400/60{% elif sci == 4 %}bg-gradient-to-b from-rose-400 to-rose-400/60{% else %}bg-gradient-to-b from-cyan-400 to-cyan-400/60{% endif %}">
                     </div>
 
-                    <div class="w-20 md:w-24 flex-shrink-0 text-center">
+                    <!-- Date + Time -->
+                    <div class="w-20 md:w-auto flex-shrink-0 text-center md:px-3">
                         <p class="text-[11px] text-mutedText font-semibold tabular-nums leading-tight">{{ lesson.date|date:"d.m.Y" }}</p>
                         <p class="text-sm font-black text-mainText tabular-nums leading-tight mt-0.5">{{ lesson.start_time|time:"H:i" }}</p>
                         <p class="text-[11px] text-mutedText tabular-nums">{{ lesson.end_time|time:"H:i" }}</p>
                     </div>
 
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-bold text-mainText truncate">{{ lesson.topic|default:"Тема не вказана" }}</p>
-                        <p class="text-xs text-mutedText italic truncate mt-0.5">{{ lesson.date|date:"l" }}</p>
-                        <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <!-- Div A: Subject name + teacher info -->
+                    <div class="flex-1 min-w-0 md:px-3 md:flex md:flex-col md:justify-center">
+                        <p class="text-sm font-bold text-mainText truncate">{{ lesson.subject.name }}</p>
+                        <span class="text-xs text-mutedText truncate max-w-[120px] mt-0.5 block">{{ lesson.teacher.full_name|format_teacher_short }}</span>
+                    </div>
+
+                    <!-- Div B: Topic + badges (hidden on mobile, visible on md+) -->
+                    <div class="hidden md:flex md:flex-col md:justify-center md:min-w-0 md:px-3">
+                        <p class="text-xs text-mutedText italic truncate">{{ lesson.topic|default:"Тема не вказана" }}</p>
+                        <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                             {% if lesson.is_cancelled %}
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-500 rounded-full text-[10px] font-bold">
                                 <svg class="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -535,8 +580,8 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                        <span class="text-xs text-mutedText hidden md:block truncate max-w-[120px]">{{ lesson.teacher.full_name|format_teacher_short }}</span>
+                    <!-- Right: homework icon + action button -->
+                    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0 md:px-3">
                         {% if lesson.homework %}
                             {% if lesson.id in submission_lesson_ids %}
                             <div class="w-8 h-8 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center flex-shrink-0">
@@ -549,7 +594,7 @@
                             {% endif %}
                         {% endif %}
                         <a href="{% url 'lesson_detail' lesson.id %}" onclick="event.stopPropagation()"
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-mutedText hover:border-primary hover:text-primary transition-all opacity-0 group-hover:opacity-100 whitespace-nowrap">
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-semibold text-mutedText hover:border-primary hover:text-primary transition-all opacity-0 group-hover:opacity-100 md:opacity-100 whitespace-nowrap">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>

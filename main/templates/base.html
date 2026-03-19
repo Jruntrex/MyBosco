@@ -371,9 +371,11 @@
                 <div class="h-16 mb-2"></div>
 
                 <!-- Page Title -->
+                {% block page_title_heading %}
                 <h1 class="text-4xl md:text-5xl font-black text-mainText tracking-tighter mb-10">
                     {% block header_title %}Заголовок{% endblock %}
                 </h1>
+                {% endblock %}
             </header>
             {% endblock %}
 

@@ -1,6 +1,29 @@
 {% extends 'base.html' %}
 
+{% block header_title %}Розклад{% endblock %}
+{% block page_title_heading %}{% endblock %}
+
 {% block content %}
+<!-- Hero banner -->
+<div class="relative overflow-hidden rounded-2xl mb-6 shadow-lg">
+    <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 via-blue-500 to-violet-500"></div>
+    <div class="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5"></div>
+    <div class="absolute -bottom-8 left-8 w-48 h-48 rounded-full bg-white/5"></div>
+    <div class="relative px-6 py-5 flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="text-white/60 text-xs font-semibold uppercase tracking-wider">MyBosco</span>
+            </div>
+            <h1 class="text-4xl font-black text-white leading-tight">Розклад</h1>
+            <p class="text-white/65 text-sm mt-0.5">Розклад занять</p>
+        </div>
+        <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-7xl mx-auto">
 
     {% for day in days_data %}

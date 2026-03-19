@@ -1510,18 +1510,33 @@ def teacher_dashboard_view(request):
     Командний центр викладача.
     Показує: розклад на сьогодні, проблемних студентів, статистику.
     """
+    import json
+    from datetime import datetime, time as dtime
+
     teacher = request.user
     today = date.today()
-    
-    # 1. Розклад на СЬОГОДНІ
-    today_lessons = Lesson.objects.filter(
-        teacher=teacher, 
-        date=today
-    ).select_related('group', 'subject', 'classroom', 'evaluation_type').order_by('start_time')
+    now = datetime.now().time()
 
-    # 2. "Радар Ризику" (Студенти з низьким середнім балом у ваших групах)
+    # 1. Розклад на СЬОГОДНІ
+    today_lessons = list(
+        Lesson.objects.filter(teacher=teacher, date=today)
+        .select_related('group', 'subject', 'classroom', 'evaluation_type')
+        .order_by('start_time')
+    )
+
+    # Поточна або наступна пара
+    current_lesson = None
+    next_lesson = None
+    for lesson in today_lessons:
+        if lesson.start_time <= now <= lesson.end_time:
+            current_lesson = lesson
+            break
+        elif lesson.start_time > now and next_lesson is None:
+            next_lesson = lesson
+
+    # 2. "Радар Ризику"
     my_groups = TeachingAssignment.objects.filter(teacher=teacher).values_list('group', flat=True)
-    
+
     risk_students = []
     students_in_danger = User.objects.filter(
         group__in=my_groups,
@@ -1538,19 +1553,25 @@ def teacher_dashboard_view(request):
             'severity': 'high' if s.absences_count > 5 else 'medium'
         })
 
-    # 3. Статистика за тиждень (кількість проведених пар)
+    # 3. Навантаження по днях тижня (для графіку)
     start_week = today - timedelta(days=today.weekday())
-    end_week = start_week + timedelta(days=6)
-    
-    weekly_load = Lesson.objects.filter(
-        teacher=teacher,
-        date__range=[start_week, end_week]
-    ).count()
+    day_names = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
+    weekly_by_day = []
+    for i in range(7):
+        day = start_week + timedelta(days=i)
+        count = Lesson.objects.filter(teacher=teacher, date=day).count()
+        weekly_by_day.append(count)
+
+    weekly_load = sum(weekly_by_day)
 
     context = {
         'today_lessons': today_lessons,
+        'current_lesson': current_lesson,
+        'next_lesson': next_lesson,
         'risk_students': risk_students,
         'weekly_load': weekly_load,
+        'weekly_labels_json': json.dumps(day_names),
+        'weekly_data_json': json.dumps(weekly_by_day),
         'active_page': 'teacher_dashboard',
     }
     return render(request, 'teacher_dashboard.html', context)
@@ -3026,7 +3047,11 @@ def api_lesson_save_settings(request: HttpRequest, lesson_id: int) -> JsonRespon
             fields.append('max_points')
         if 'deadline' in data:
             from django.utils.dateparse import parse_datetime
-            lesson.deadline = parse_datetime(data['deadline']) if data['deadline'] else None
+            from django.utils import timezone
+            parsed = parse_datetime(data['deadline']) if data['deadline'] else None
+            if parsed is not None and timezone.is_naive(parsed):
+                parsed = timezone.make_aware(parsed)
+            lesson.deadline = parsed
             fields.append('deadline')
         if fields:
             lesson.save(update_fields=fields)

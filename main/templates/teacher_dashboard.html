@@ -2,327 +2,310 @@
 {% load static %}
 
 {% block title %}Дашборд викладача{% endblock %}
-{% block header_title %}Огляд{% endblock %}
+{% block header_title %}Дашборд{% endblock %}
+{% block page_title_heading %}{% endblock %}
 
 {% block extra_head %}
-<!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    .glass-tile {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .custom-shadow {
-        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
-    }
-
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #f1f5f9;
-        border-radius: 10px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #e2e8f0;
-    }
+    canvas { width: 100% !important; }
 </style>
 {% endblock %}
 
 {% block content %}
+
+<!-- Hero banner -->
+<div class="relative overflow-hidden rounded-2xl mb-6 shadow-lg">
+    <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 via-blue-500 to-violet-500"></div>
+    <div class="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5"></div>
+    <div class="absolute -bottom-8 left-8 w-48 h-48 rounded-full bg-white/5"></div>
+    <div class="relative px-6 py-5 flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                <span class="text-white/60 text-xs font-semibold uppercase tracking-wider">MyBosco</span>
+            </div>
+            <h1 class="text-4xl font-black text-white leading-tight">Вітаємо, {{ request.user.full_name }}!</h1>
+            <p class="text-white/65 text-sm mt-0.5">Ваш персональний викладацький дашборд</p>
+        </div>
+        <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex flex-col items-center justify-center">
+            <span class="text-xl font-black text-white">{{ today_lessons|length }}</span>
+            <span class="text-[10px] text-white/65 font-semibold">пар</span>
+        </div>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 pb-10">
 
-    <!-- 1. Header (Greeting) -->
-    <div class="col-span-1 md:col-span-4 flex flex-col md:flex-row justify-between items-end mb-2">
+    <!-- 1. Графік навантаження тижня -->
+    <div class="col-span-1 md:col-span-3 card-bento flex flex-col justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Привіт, {{ request.user.full_name }}! 👋</h1>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{% now "d E, l" %}</p>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-mutedText font-semibold tracking-wide uppercase text-sm">Навантаження тижня</h3>
+                <span class="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20">{% now "W" %} тиждень</span>
+            </div>
+            <div class="relative h-36">
+                <canvas id="weeklyChart"></canvas>
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-border flex justify-between items-center text-xs text-mutedText">
+            <span>Кількість пар по днях</span>
+            <a href="{% url 'timeline_schedule' %}" class="text-primary font-bold hover:underline">Повний розклад →</a>
         </div>
     </div>
 
-    <!-- 2. KPI: Сьогодні пар (Blue Gradient Accent) -->
-    <div
-        class="col-span-1 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl shadow-xl p-8 flex flex-col justify-between min-h-[240px]">
+    <!-- 2. Тижневе навантаження (accent card) -->
+    <div class="col-span-1 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl shadow-xl p-8 flex flex-col justify-between">
         <div>
             <div class="bg-blue-400/30 w-12 h-12 rounded-2xl flex items-center justify-center mb-6">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
             </div>
-            <span class="text-blue-100 text-sm font-medium">Сьогодні пар</span>
-            <div class="text-7xl font-black mt-2 tracking-tighter">{{ today_lessons|length }}</div>
+            <span class="text-blue-100 text-sm font-medium">Пар за тиждень</span>
+            <div class="text-7xl font-black mt-2 tracking-tighter">{{ weekly_load }}</div>
         </div>
         <div class="text-xs text-blue-200/80 font-medium">
-            <span class="bg-white/20 px-2 py-1 rounded-lg">Заплановано на сьогодні</span>
+            <span class="bg-white/20 px-2 py-1 rounded-lg">Норма: 18 пар</span>
         </div>
     </div>
 
-    <!-- 3. KPI: Навантаження (White Card) -->
-    <div class="col-span-1 md:col-span-2 bg-white rounded-3xl custom-shadow p-8 flex flex-col justify-between">
-        <div class="flex justify-between items-start">
-            <div>
-                <h3 class="text-gray-500 font-semibold tracking-wide uppercase text-sm mb-1">Тижневе навантаження</h3>
-                <div class="flex items-baseline gap-2">
-                    <span class="text-4xl font-black text-gray-800">{{ weekly_load }}</span>
-                    <span class="text-xs font-bold text-gray-400 uppercase">год.</span>
-                </div>
-            </div>
-            <span
-                class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold border border-blue-100">Норма:
-                18</span>
-        </div>
-
-        <div class="mt-8">
-            {% widthratio weekly_load 18 100 as load_percent %}
-            <div class="flex justify-between items-end mb-2">
-                <span class="text-xs font-bold text-gray-400 uppercase">Прогрес виконання</span>
-                <span class="text-xs font-bold {% if load_percent > 100 %}text-red-500{% else %}text-blue-600{% endif %}">
-                    {% if load_percent > 100 %}100{% else %}{{ load_percent }}{% endif %}%
-                </span>
-            </div>
-            <div class="w-full bg-gray-100 rounded-full h-3">
-                <div class="{% if load_percent > 100 %}bg-red-500{% else %}bg-blue-600{% endif %} h-3 rounded-full shadow-lg shadow-blue-200"
-                    style="width: {% if load_percent > 100 %}100{% else %}{{ load_percent }}{% endif %}%"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 4. KPI: Студенти в ризику (White Card) -->
-    <div class="col-span-1 bg-white rounded-3xl custom-shadow p-8 flex flex-col justify-between">
-        <div>
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-gray-500 font-semibold tracking-wide uppercase text-sm">У зоні ризику</h3>
-                <span class="flex h-3 w-3 relative">
-                    <span
-                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                </span>
-            </div>
-            <div class="text-5xl font-black text-red-500 tracking-tighter">{{ risk_students|length }}</div>
-            <p class="text-xs text-gray-400 mt-2 font-medium">Студентів потребують уваги</p>
-        </div>
-        <a href="#risk-radar"
-            class="mt-4 text-red-500 text-xs font-bold hover:bg-red-50 px-3 py-2 rounded-lg transition-colors flex items-center justify-between group">
-            <span>Переглянути список</span>
-            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- 3. Поточна / Наступна пара -->
+    <div class="col-span-1 md:col-span-2 card-bento flex flex-col justify-between relative overflow-hidden">
+        {% with lesson=current_lesson|default:next_lesson %}
+        {% if lesson %}
+        <div class="absolute top-0 right-0 p-6 opacity-5">
+            <svg class="w-32 h-32 text-mainText" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
             </svg>
-        </a>
-    </div>
-
-    <!-- 5. Розклад (Timeline) -->
-    <div class="col-span-1 md:col-span-3 bg-white rounded-3xl custom-shadow p-8 relative overflow-hidden">
-        <div class="flex justify-between items-center mb-8">
-            <h3 class="text-gray-500 font-semibold tracking-wide uppercase text-sm">Розклад (Timeline)</h3>
-            <div class="flex items-center gap-2">
-                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Події сьогодні</span>
+        </div>
+        <div>
+            <div class="text-xs {% if current_lesson %}text-green-500{% else %}text-primary{% endif %} uppercase font-black tracking-widest mb-4 flex items-center gap-2">
+                <span class="w-2 h-2 {% if current_lesson %}bg-green-500 animate-pulse{% else %}bg-primary{% endif %} rounded-full"></span>
+                {% if current_lesson %}ЗАРАЗ У ЕФІРІ{% else %}Наступна пара{% endif %}
+            </div>
+            <div class="text-3xl font-extrabold text-mainText mb-2 leading-tight">
+                {% if lesson.subject %}{{ lesson.subject.name }}{% else %}—{% endif %}
+            </div>
+            <div class="flex items-center gap-4 text-mutedText mb-6">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="font-bold">{{ lesson.start_time|time:"H:i" }} – {{ lesson.end_time|time:"H:i" }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="font-bold">Ауд. {{ lesson.classroom.name|default:"—" }}</span>
+                </div>
             </div>
         </div>
-
-        {% if today_lessons %}
-        <div class="relative space-y-4">
-            {% for lesson in today_lessons %}
-            <div
-                class="flex flex-col md:flex-row gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group">
-                <div
-                    class="flex-shrink-0 flex flex-col items-center justify-center w-20 h-20 bg-gray-100 rounded-2xl group-hover:bg-white group-hover:shadow-md transition-all">
-                    <span class="text-sm font-black text-gray-900">{{ lesson.start_time|time:"H:i" }}</span>
-                    <span class="text-xs font-bold text-gray-400">{{ lesson.end_time|time:"H:i" }}</span>
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-border rounded-full flex items-center justify-center text-mutedText font-bold text-sm">
+                    {{ lesson.group.name|slice:":2" }}
                 </div>
-
-                <div class="flex-grow flex flex-col justify-center">
-                    <h4 class="text-lg font-black text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">{% if lesson and lesson.subject %}{{ lesson.subject.name }}{% else %}—{% endif %}</h4>
-                    <div class="flex items-center gap-3 text-xs font-medium text-gray-500">
-                        <span class="flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                            {{ lesson.group.name }}
-                        </span>
-                        <span class="flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                            Ауд. {{ lesson.classroom.name|default:"—" }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="flex items-center">
-                    <a href="{% url 'teacher_live_mode' lesson.id %}"
-                        class="w-full md:w-auto px-6 py-3 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-blue-600 hover:shadow-lg transition-all flex items-center justify-center gap-2">
-                        <span>Live Mode</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                        </svg>
-                    </a>
+                <div class="text-sm">
+                    <div class="text-mainText font-bold">{{ lesson.group.name }}</div>
+                    <div class="text-mutedText text-xs">Група</div>
                 </div>
             </div>
-            {% endfor %}
+            <a href="{% url 'teacher_live_mode' lesson.id %}"
+                class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/80 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+                Live Mode
+            </a>
         </div>
         {% else %}
-        <div class="flex flex-col items-center justify-center py-20 text-center">
-            <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 text-3xl opacity-50">☕
-            </div>
-            <h3 class="text-lg font-bold text-gray-900">На сьогодні пар немає</h3>
-            <p class="text-gray-400 text-sm">Час відпочити або підготуватися до занять</p>
+        <div class="flex flex-col items-center justify-center h-full text-center text-mutedText">
+            <svg class="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="font-medium">На найближчий час пар немає</p>
         </div>
         {% endif %}
+        {% endwith %}
     </div>
 
-    <!-- 6. Радар ризику (List) -->
-    <div id="risk-radar" class="col-span-1 bg-white rounded-3xl custom-shadow p-8">
-        <h3 class="text-gray-500 font-semibold tracking-wide uppercase text-sm mb-6">Радар Ризику</h3>
-        <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+    <!-- 4. Радар ризику -->
+    <div class="col-span-1 md:col-span-2 card-bento flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-mutedText font-semibold tracking-wide uppercase text-sm">Радар ризику</h3>
+            {% if risk_students %}
+            <span class="flex h-2.5 w-2.5 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+            </span>
+            {% endif %}
+        </div>
+        <div class="space-y-2 overflow-y-auto flex-1 pr-1" style="max-height: 260px; scrollbar-width: thin;">
             {% for student in risk_students %}
-            <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-red-50 transition-all cursor-pointer group">
-                <div
-                    class="flex-shrink-0 w-10 h-10 bg-red-100 text-red-500 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-red-200 transition-colors">
-                    {% if student.name %}{{ student.name|slice:":1" }}{% else %}—{% endif %}
+            <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all group">
+                <div class="flex-shrink-0 w-9 h-9 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-xl flex items-center justify-center font-black text-xs">
+                    {{ student.name|slice:":1"|default:"—" }}
                 </div>
-                <div class="min-w-0">
-                    <p class="text-sm font-bold text-gray-800 truncate group-hover:text-red-600 transition-colors">{% if student.name %}{{ student.name }}{% else %}—{% endif %}</p>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-bold text-mainText truncate group-hover:text-red-600 transition-colors">{{ student.name|default:"—" }}</p>
                     <div class="flex items-center gap-2 mt-0.5">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase bg-gray-100 px-1.5 rounded">{% if student.group %}{{ student.group.name }}{% else %}—{% endif %}</span>
+                        <span class="text-[10px] font-bold text-mutedText uppercase bg-border/50 px-1.5 py-0.5 rounded">{{ student.group|default:"—" }}</span>
                         <span class="text-[10px] font-bold text-red-400">{{ student.issue }}</span>
                     </div>
                 </div>
             </div>
             {% empty %}
-            <div class="text-center py-10">
-                <div class="text-3xl mb-2 opacity-50">✨</div>
-                <p class="text-xs text-gray-400 font-medium">Все чудово!</p>
+            <div class="flex flex-col items-center justify-center py-10 text-center text-mutedText">
+                <div class="text-3xl mb-2">✨</div>
+                <p class="text-xs font-medium">Все чудово! Проблемних студентів немає.</p>
             </div>
             {% endfor %}
         </div>
     </div>
 
-    <!-- 7. Quick Actions (Grid) -->
-    <div class="col-span-1 md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-6 mt-2">
-        <a href="{% url 'teacher_journal' %}"
-            class="bg-white rounded-3xl custom-shadow p-6 hover:translate-y-[-4px] transition-transform duration-300 group">
-            <div
-                class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+    <!-- 5. Швидкі дії + Інтерактив -->
+    <div class="col-span-1 md:col-span-4 grid grid-cols-1 md:grid-cols-4 gap-6">
+
+        <a href="{% url 'teacher_journal' %}" class="card-bento hover:translate-y-[-4px] transition-transform duration-300 group">
+            <div class="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Журнал</h3>
-            <p class="text-xs text-gray-400 mt-1">Виставлення оцінок</p>
+            <h3 class="text-lg font-bold text-mainText group-hover:text-primary transition-colors">Журнал</h3>
+            <p class="text-xs text-mutedText mt-1">Виставлення оцінок</p>
         </a>
 
-        <a href="{% url 'timeline_schedule' %}"
-            class="bg-white rounded-3xl custom-shadow p-6 hover:translate-y-[-4px] transition-transform duration-300 group">
-            <div
-                class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+        <a href="{% url 'timeline_schedule' %}" class="card-bento hover:translate-y-[-4px] transition-transform duration-300 group">
+            <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
+                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Розклад</h3>
-            <p class="text-xs text-gray-400 mt-1">Таймлайн подій</p>
+            <h3 class="text-lg font-bold text-mainText group-hover:text-indigo-500 transition-colors">Розклад</h3>
+            <p class="text-xs text-mutedText mt-1">Таймлайн подій</p>
         </a>
 
-        <a href="{% url 'manage_evaluation_types' %}"
-            class="bg-white rounded-3xl custom-shadow p-6 hover:translate-y-[-4px] transition-transform duration-300 group">
-            <div
-                class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+        <a href="{% url 'manage_evaluation_types' %}" class="card-bento hover:translate-y-[-4px] transition-transform duration-300 group">
+            <div class="w-12 h-12 bg-purple-500/10 text-purple-500 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-purple-500 group-hover:text-white transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
+                    <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
-            <h3 class="text-lg font-bold text-gray-900 group-hover:text-purple-600 transition-colors">Налаштування</h3>
-            <p class="text-xs text-gray-400 mt-1">Типи оцінювання</p>
+            <h3 class="text-lg font-bold text-mainText group-hover:text-purple-500 transition-colors">Налаштування</h3>
+            <p class="text-xs text-mutedText mt-1">Типи оцінювання</p>
         </a>
 
-        <div class="bg-white rounded-3xl custom-shadow p-6 opacity-50 grayscale cursor-not-allowed relative group"
-            title="Функція аналітики знаходиться в розробці та буде доступна незабаром">
-            <div class="w-12 h-12 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center mb-4">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-            </div>
-            <h3 class="text-lg font-bold text-gray-900">Аналітика</h3>
-            <p class="text-xs text-gray-400 mt-1">В розробці</p>
-            <span class="absolute top-3 right-3 px-2 py-0.5 bg-gray-100 text-gray-400 text-[9px] font-black uppercase tracking-widest rounded-full">Незабаром</span>
-        </div>
-    </div>
-
-    <!-- 8. Interactive Random (Student Style) -->
-    <div class="col-span-1 md:col-span-4 mt-4">
-        <div
-            class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden shadow-2xl">
-            <div class="relative z-10 text-center md:text-left">
-                <h3 class="text-2xl font-black text-white tracking-tight mb-1">Інтерактив 🎲</h3>
-                <p class="text-gray-400 text-sm font-medium">Випадковий вибір студента для відповіді</p>
-                <div id="randomResult" class="mt-4 min-h-[40px] text-xl font-bold text-blue-400 italic font-mono"></div>
+        <!-- Інтерактив -->
+        <div class="card-bento bg-gradient-to-br from-gray-900 to-gray-800 border-0 flex flex-col justify-between overflow-hidden relative">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-600 opacity-20 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+            <div class="relative z-10">
+                <h3 class="text-lg font-bold text-white">Інтерактив</h3>
+                <p class="text-xs text-gray-400 mt-1">Випадковий студент</p>
+                <div id="randomResult" class="mt-3 min-h-[32px] text-sm font-bold text-blue-400 font-mono"></div>
             </div>
             <button onclick="pickRandom()"
-                class="relative z-10 px-8 py-4 bg-white text-gray-900 font-bold rounded-2xl hover:bg-blue-500 hover:text-white hover:shadow-2xl hover:shadow-blue-500/20 transition-all active:scale-95 text-sm">
-                Обрати випадкового
+                class="relative z-10 mt-4 w-full px-4 py-2.5 bg-white/10 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all border border-white/10">
+                Обрати
             </button>
-
-            <!-- Shapes -->
-            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600 opacity-20 rounded-full -mr-20 -mt-20 blur-3xl">
-            </div>
-            <div
-                class="absolute bottom-0 left-0 w-48 h-48 bg-purple-600 opacity-10 rounded-full -ml-10 -mb-10 blur-3xl">
-            </div>
         </div>
+
     </div>
 
 </div>
+{% endblock %}
 
+{% block extra_js %}
+{{ block.super }}
 <script>
-    // Реальний список студентів з поточних занять (today_lessons)
+    const isDark = document.documentElement.classList.contains('dark');
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9';
+    const tickColor = isDark ? '#64748b' : '#94a3b8';
+
+    // Графік навантаження тижня (Bar)
+    const weekCtx = document.getElementById('weeklyChart').getContext('2d');
+    const weekLabels = JSON.parse('{{ weekly_labels_json|escapejs }}');
+    const weekData = JSON.parse('{{ weekly_data_json|escapejs }}');
+
+    new Chart(weekCtx, {
+        type: 'bar',
+        data: {
+            labels: weekLabels,
+            datasets: [{
+                label: 'Пар',
+                data: weekData,
+                backgroundColor: weekData.map((_, i) => {
+                    const today = new Date().getDay();
+                    const dayIdx = today === 0 ? 6 : today - 1;
+                    return i === dayIdx ? '#5B84FF' : (isDark ? 'rgba(91,132,255,0.2)' : 'rgba(91,132,255,0.15)');
+                }),
+                borderColor: weekData.map((_, i) => {
+                    const today = new Date().getDay();
+                    const dayIdx = today === 0 ? 6 : today - 1;
+                    return i === dayIdx ? '#5B84FF' : 'rgba(91,132,255,0.4)';
+                }),
+                borderWidth: 2,
+                borderRadius: 10,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.y} пар${ctx.parsed.y === 1 ? 'а' : ctx.parsed.y < 5 ? 'и' : ''}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: tickColor, font: { size: 12, weight: '600' } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [5, 5] },
+                    ticks: {
+                        color: tickColor,
+                        font: { size: 11 },
+                        stepSize: 1,
+                        callback: val => Number.isInteger(val) ? val : ''
+                    }
+                }
+            }
+        }
+    });
+
+    // Інтерактив: випадковий студент
     const studentNames = [
         {% for lesson in today_lessons %}
             {% for student in lesson.group.user_set.all %}
                 "{{ student.full_name|escapejs }}",
             {% endfor %}
         {% endfor %}
-    ].filter((v, i, a) => a.indexOf(v) === i); // унікальні
+    ].filter((v, i, a) => a.indexOf(v) === i);
 
     function pickRandom() {
-        const resultDiv = document.getElementById('randomResult');
-        resultDiv.innerText = "Обираємо...";
-        resultDiv.classList.add('animate-pulse');
-
+        const el = document.getElementById('randomResult');
+        el.textContent = '...';
+        el.classList.add('animate-pulse');
         setTimeout(() => {
-            const names = studentNames.length > 0
-                ? studentNames
-                : ["Список студентів порожній"];
-            const randomName = names[Math.floor(Math.random() * names.length)];
-            resultDiv.innerText = `> ${randomName}`;
-            resultDiv.classList.remove('animate-pulse');
-        }, 600);
+            const names = studentNames.length > 0 ? studentNames : ['Немає студентів'];
+            el.textContent = '> ' + names[Math.floor(Math.random() * names.length)];
+            el.classList.remove('animate-pulse');
+        }, 500);
     }
 </script>
 {% endblock %}
