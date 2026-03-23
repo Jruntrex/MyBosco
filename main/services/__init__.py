@@ -6,21 +6,20 @@ Service Layer для MyBosco
 
 from .grading_service import (
     calculate_student_grade,
-    get_bayesian_average,
     convert_points_to_grade,
+    get_bayesian_average,
 )
-
 from .schedule_service import (
-    validate_schedule_slot,
     check_time_overlap,
     get_schedule_conflicts,
+    validate_schedule_slot,
 )
 
 __all__ = [
-    'calculate_student_grade',
-    'get_bayesian_average',
-    'convert_points_to_grade',
-    'validate_schedule_slot',
-    'check_time_overlap',
-    'get_schedule_conflicts',
+    "calculate_student_grade",
+    "get_bayesian_average",
+    "convert_points_to_grade",
+    "validate_schedule_slot",
+    "check_time_overlap",
+    "get_schedule_conflicts",
 ]

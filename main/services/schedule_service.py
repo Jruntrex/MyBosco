@@ -7,37 +7,35 @@ Schedule Service - Business Logic для системи розкладу
 - Управління шаблонами розкладу
 """
 
-from datetime import date, time, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Optional, Tuple
 
 from django.db.models import Q
+
 from main.models import (
+    Classroom,
     ScheduleTemplate,
     StudyGroup,
-    User,
-    Classroom,
     Subject,
+    User,
 )
 
 
 def check_time_overlap(
-    start1: time,
-    duration1: int,
-    start2: time,
-    duration2: int
+    start1: time, duration1: int, start2: time, duration2: int
 ) -> bool:
     """
     Перевірка перетину двох часових інтервалів.
-    
+
     Args:
         start1: Час початку першого інтервалу
         duration1: Тривалість першого інтервалу в хвилинах
         start2: Час початку другого інтервалу
         duration2: Тривалість другого інтервалу в хвилинах
-    
+
     Returns:
         True якщо інтервали перетинаються, False якщо ні
-    
+
     Example:
         >>> check_time_overlap(time(8, 30), 80, time(9, 0), 80)
         True  # 08:30-09:50 перетинається з 09:00-10:20
@@ -48,10 +46,10 @@ def check_time_overlap(
     base_date = date.today()
     start1_dt = datetime.combine(base_date, start1)
     end1_dt = start1_dt + timedelta(minutes=duration1)
-    
+
     start2_dt = datetime.combine(base_date, start2)
     end2_dt = start2_dt + timedelta(minutes=duration2)
-    
+
     # Перетин інтервалів: max(start) < min(end)
     return max(start1_dt, start2_dt) < min(end1_dt, end2_dt)
 
@@ -66,16 +64,16 @@ def validate_schedule_slot(
     teacher: Optional[User] = None,
     classroom: Optional[Classroom] = None,
     exclude_slot_id: Optional[int] = None,
-    check_current_group: bool = True
+    check_current_group: bool = True,
 ) -> Tuple[bool, str]:
     """
     Валідація слоту розкладу на наявність конфліктів.
-    
+
     Перевіряє:
     1. Чи не перетинається з іншими парами тієї ж групи (якщо check_current_group=True)
     2. Чи не зайнятий викладач в цей час
     3. Чи не зайнята аудиторія в цей час
-    
+
     Args:
         group: Група
         day: День тижня (1-7)
@@ -87,7 +85,7 @@ def validate_schedule_slot(
         classroom: Аудиторія (опціонально)
         exclude_slot_id: ID слоту, який не враховувати (для редагування)
         check_current_group: Чи перевіряти конфлікти всередині групи (False при повному перезаписі)
-    
+
     Returns:
         Tuple (is_valid, error_message)
         - is_valid: True якщо валідний, False якщо є конфлікт
@@ -95,115 +93,117 @@ def validate_schedule_slot(
     """
     # 1. Перевірка конфліктів з іншими парами тієї ж групи (тільки якщо потрібно)
     if check_current_group:
-        group_conflicts = ScheduleTemplate.objects.filter(
-            group=group,
-            day_of_week=day
-        )
-        
+        group_conflicts = ScheduleTemplate.objects.filter(group=group, day_of_week=day)
+
         if exclude_slot_id:
             group_conflicts = group_conflicts.exclude(id=exclude_slot_id)
-        
+
         for conflict in group_conflicts:
             if check_time_overlap(
-                start_time, duration,
-                conflict.start_time, conflict.duration_minutes
+                start_time, duration, conflict.start_time, conflict.duration_minutes
             ):
                 return (
                     False,
                     f"Конфлікт: Пара №{conflict.lesson_number} "
-                    f"({conflict.start_time.strftime('%H:%M')}) перетинається з цим часом"
+                    f"({conflict.start_time.strftime('%H:%M')}) перетинається з цим часом",
                 )
-    
+
     # 2. Перевірка зайнятості викладача
     if teacher:
-        print(f"🔍 DEBUG: Перевіряємо викладача {teacher.full_name}, група={group.name} (ID:{group.id}), check_current_group={check_current_group}")
-        
-        teacher_conflicts = ScheduleTemplate.objects.filter(
-            teacher=teacher,
-            day_of_week=day
+        print(
+            f"🔍 DEBUG: Перевіряємо викладача {teacher.full_name}, група={group.name} (ID:{group.id}), check_current_group={check_current_group}"
         )
-        
-        print(f"🔍 DEBUG: Знайдено {teacher_conflicts.count()} конфліктів викладача до виключення")
-        
+
+        teacher_conflicts = ScheduleTemplate.objects.filter(
+            teacher=teacher, day_of_week=day
+        )
+
+        print(
+            f"🔍 DEBUG: Знайдено {teacher_conflicts.count()} конфліктів викладача до виключення"
+        )
+
         if exclude_slot_id:
             teacher_conflicts = teacher_conflicts.exclude(id=exclude_slot_id)
-            print(f"🔍 DEBUG: Після exclude(id={exclude_slot_id}): {teacher_conflicts.count()} конфліктів")
-        
+            print(
+                f"🔍 DEBUG: Після exclude(id={exclude_slot_id}): {teacher_conflicts.count()} конфліктів"
+            )
+
         # Якщо перезаписуємо групу, ігноруємо її старі записи
         if not check_current_group:
-            print(f"🔍 DEBUG: Виключаємо групу {group.name} (ID:{group.id}) з перевірки")
+            print(
+                f"🔍 DEBUG: Виключаємо групу {group.name} (ID:{group.id}) з перевірки"
+            )
             teacher_conflicts = teacher_conflicts.exclude(group_id=group.id)
-            print(f"🔍 DEBUG: Після exclude(group_id={group.id}): {teacher_conflicts.count()} конфліктів")
-        
+            print(
+                f"🔍 DEBUG: Після exclude(group_id={group.id}): {teacher_conflicts.count()} конфліктів"
+            )
+
         for conflict in teacher_conflicts:
-            print(f"🔍 DEBUG: Перевіряємо конфлікт: ID={conflict.id}, Група={conflict.group.name} (ID:{conflict.group_id}), {conflict.subject.name}, {conflict.start_time}")
+            print(
+                f"🔍 DEBUG: Перевіряємо конфлікт: ID={conflict.id}, Група={conflict.group.name} (ID:{conflict.group_id}), {conflict.subject.name}, {conflict.start_time}"
+            )
             if check_time_overlap(
-                start_time, duration,
-                conflict.start_time, conflict.duration_minutes
+                start_time, duration, conflict.start_time, conflict.duration_minutes
             ):
                 # Перевірка на "Спільну пару" (Shared Lesson / Joint Class)
                 # Допускаємо перетин, якщо це той самий викладач, предмет, та час початку.
                 # Аудиторія може бути різною (наприклад, онлайн лекція для кількох груп)
                 is_shared_lesson = (
-                    conflict.subject_id == subject.id and
-                    conflict.start_time == start_time
+                    conflict.subject_id == subject.id
+                    and conflict.start_time == start_time
                 )
                 if is_shared_lesson:
                     continue
-                
+
                 return (
                     False,
                     f"Викладач {teacher.full_name} уже зайнятий у групі {conflict.group.name} "
-                    f"на предметі '{conflict.subject.name}' о {conflict.start_time.strftime('%H:%M')} (ID: {conflict.id})"
+                    f"на предметі '{conflict.subject.name}' о {conflict.start_time.strftime('%H:%M')} (ID: {conflict.id})",
                 )
-    
+
     # 3. Перевірка зайнятості аудиторії
     if classroom:
         classroom_conflicts = ScheduleTemplate.objects.filter(
-            classroom=classroom,
-            day_of_week=day
+            classroom=classroom, day_of_week=day
         )
-        
+
         if exclude_slot_id:
             classroom_conflicts = classroom_conflicts.exclude(id=exclude_slot_id)
-        
+
         # Якщо перезаписуємо групу, ігноруємо її старі записи
         if not check_current_group:
             classroom_conflicts = classroom_conflicts.exclude(group_id=group.id)
-        
+
         for conflict in classroom_conflicts:
             if check_time_overlap(
-                start_time, duration,
-                conflict.start_time, conflict.duration_minutes
+                start_time, duration, conflict.start_time, conflict.duration_minutes
             ):
                 # Також перевіряємо на спільну пару
                 is_shared_lesson = (
-                    conflict.teacher_id == (teacher.id if teacher else None) and
-                    conflict.subject_id == subject.id and
-                    conflict.start_time == start_time
+                    conflict.teacher_id == (teacher.id if teacher else None)
+                    and conflict.subject_id == subject.id
+                    and conflict.start_time == start_time
                 )
                 if is_shared_lesson:
                     continue
-                
+
                 return (
                     False,
                     f"Аудиторія {classroom.name} зайнята групою {conflict.group.name} "
-                    f"на предметі '{conflict.subject.name}' о {conflict.start_time.strftime('%H:%M')} (ID: {conflict.id})"
+                    f"на предметі '{conflict.subject.name}' о {conflict.start_time.strftime('%H:%M')} (ID: {conflict.id})",
                 )
-    
+
     # Всі перевірки пройдені
     return (True, "")
 
 
-def get_schedule_conflicts(
-    schedule_template: ScheduleTemplate
-) -> list[dict]:
+def get_schedule_conflicts(schedule_template: ScheduleTemplate) -> list[dict]:
     """
     Отримання всіх конфліктів для конкретного слоту розкладу.
-    
+
     Args:
         schedule_template: Шаблон розкладу для перевірки
-    
+
     Returns:
         Список конфліктів у форматі:
         [
@@ -216,161 +216,154 @@ def get_schedule_conflicts(
         ]
     """
     conflicts = []
-    
+
     # Конфлікти по групі
     group_conflicts = ScheduleTemplate.objects.filter(
-        group=schedule_template.group,
-        day_of_week=schedule_template.day_of_week
+        group=schedule_template.group, day_of_week=schedule_template.day_of_week
     ).exclude(id=schedule_template.id)
-    
+
     for conflict in group_conflicts:
         if check_time_overlap(
             schedule_template.start_time,
             schedule_template.duration_minutes,
             conflict.start_time,
-            conflict.duration_minutes
+            conflict.duration_minutes,
         ):
-            conflicts.append({
-                'type': 'group',
-                'message': f"Конфлікт з іншою парою (№{conflict.lesson_number})",
-                'conflicting_slot': conflict,
-            })
-    
+            conflicts.append(
+                {
+                    "type": "group",
+                    "message": f"Конфлікт з іншою парою (№{conflict.lesson_number})",
+                    "conflicting_slot": conflict,
+                }
+            )
+
     # Конфлікти по викладачу
     if schedule_template.teacher:
         teacher_conflicts = ScheduleTemplate.objects.filter(
-            teacher=schedule_template.teacher,
-            day_of_week=schedule_template.day_of_week
+            teacher=schedule_template.teacher, day_of_week=schedule_template.day_of_week
         ).exclude(id=schedule_template.id)
-        
+
         for conflict in teacher_conflicts:
             if check_time_overlap(
                 schedule_template.start_time,
                 schedule_template.duration_minutes,
                 conflict.start_time,
-                conflict.duration_minutes
+                conflict.duration_minutes,
             ):
-                conflicts.append({
-                    'type': 'teacher',
-                    'message': f"Викладач зайнятий у групі {conflict.group.name}",
-                    'conflicting_slot': conflict,
-                })
-    
+                conflicts.append(
+                    {
+                        "type": "teacher",
+                        "message": f"Викладач зайнятий у групі {conflict.group.name}",
+                        "conflicting_slot": conflict,
+                    }
+                )
+
     # Конфлікти по аудиторії
     if schedule_template.classroom:
         classroom_conflicts = ScheduleTemplate.objects.filter(
             classroom=schedule_template.classroom,
-            day_of_week=schedule_template.day_of_week
+            day_of_week=schedule_template.day_of_week,
         ).exclude(id=schedule_template.id)
-        
+
         for conflict in classroom_conflicts:
             if check_time_overlap(
                 schedule_template.start_time,
                 schedule_template.duration_minutes,
                 conflict.start_time,
-                conflict.duration_minutes
+                conflict.duration_minutes,
             ):
-                conflicts.append({
-                    'type': 'classroom',
-                    'message': f"Аудиторія зайнята групою {conflict.group.name}",
-                    'conflicting_slot': conflict,
-                })
-    
+                conflicts.append(
+                    {
+                        "type": "classroom",
+                        "message": f"Аудиторія зайнята групою {conflict.group.name}",
+                        "conflicting_slot": conflict,
+                    }
+                )
+
     return conflicts
 
 
 def get_available_teachers(
-    day: int,
-    start_time: time,
-    duration: int,
-    subject: Optional[Subject] = None
+    day: int, start_time: time, duration: int, subject: Optional[Subject] = None
 ) -> list[User]:
     """
     Отримання списку викладачів, доступних в конкретний час.
-    
+
     Args:
         day: День тижня (1-7)
         start_time: Час початку
         duration: Тривалість в хвилинах
         subject: Предмет (фільтрувати тільки викладачів цього предмету)
-    
+
     Returns:
         Список викладачів (User objects)
     """
     # Всі викладачі
-    teachers = User.objects.filter(role='teacher')
-    
+    teachers = User.objects.filter(role="teacher")
+
     if subject:
         # Фільтруємо тих, хто читає цей предмет
-        teachers = teachers.filter(
-            teachingassignment__subject=subject
-        ).distinct()
-    
+        teachers = teachers.filter(teachingassignment__subject=subject).distinct()
+
     # Виключаємо зайнятих викладачів
-    busy_teachers = ScheduleTemplate.objects.filter(
-        day_of_week=day
-    ).select_related('teacher')
-    
+    busy_teachers = ScheduleTemplate.objects.filter(day_of_week=day).select_related(
+        "teacher"
+    )
+
     available_teachers = []
     for teacher in teachers:
         is_busy = False
         for slot in busy_teachers.filter(teacher=teacher):
             if check_time_overlap(
-                start_time, duration,
-                slot.start_time, slot.duration_minutes
+                start_time, duration, slot.start_time, slot.duration_minutes
             ):
                 is_busy = True
                 break
-        
+
         if not is_busy:
             available_teachers.append(teacher)
-    
+
     return available_teachers
 
 
 def get_available_classrooms(
-    day: int,
-    start_time: time,
-    duration: int,
-    min_capacity: Optional[int] = None
+    day: int, start_time: time, duration: int, min_capacity: Optional[int] = None
 ) -> list[Classroom]:
     """
     Отримання списку вільних аудиторій в конкретний час.
-    
+
     Args:
         day: День тижня (1-7)
         start_time: Час початку
         duration: Тривалість в хвилинах
         min_capacity: Мінімальна місткість (опціонально)
-    
+
     Returns:
         Список аудиторій (Classroom objects)
     """
     classrooms = Classroom.objects.all()
-    
+
     if min_capacity:
         classrooms = classrooms.filter(capacity__gte=min_capacity)
-    
+
     # Виключаємо зайняті аудиторії
     busy_classrooms = ScheduleTemplate.objects.filter(
-        day_of_week=day,
-        classroom__isnull=False
-    ).select_related('classroom')
-    
+        day_of_week=day, classroom__isnull=False
+    ).select_related("classroom")
+
     available_classrooms = []
     for classroom in classrooms:
         is_busy = False
         for slot in busy_classrooms.filter(classroom=classroom):
             if check_time_overlap(
-                start_time, duration,
-                slot.start_time, slot.duration_minutes
+                start_time, duration, slot.start_time, slot.duration_minutes
             ):
                 is_busy = True
                 break
-        
+
         if not is_busy:
             available_classrooms.append(classroom)
-    
+
     return available_classrooms
 
 
@@ -379,8 +372,10 @@ def find_all_schedule_conflicts() -> list[tuple[ScheduleTemplate, ScheduleTempla
     Системна перевірка всіх шаблонів розкладу на наявність перетинів для викладачів.
     Використовується для діагностики здоров'я бази даних.
     """
-    all_templates = ScheduleTemplate.objects.all().select_related('teacher', 'group', 'subject')
-    
+    all_templates = ScheduleTemplate.objects.all().select_related(
+        "teacher", "group", "subject"
+    )
+
     # Групуємо по викладачу та дню
     by_teacher_day = {}
     for t in all_templates:
@@ -390,7 +385,7 @@ def find_all_schedule_conflicts() -> list[tuple[ScheduleTemplate, ScheduleTempla
         if key not in by_teacher_day:
             by_teacher_day[key] = []
         by_teacher_day[key].append(t)
-    
+
     conflicts = []
     for key, templates in by_teacher_day.items():
         for i in range(len(templates)):
@@ -398,9 +393,11 @@ def find_all_schedule_conflicts() -> list[tuple[ScheduleTemplate, ScheduleTempla
                 t1 = templates[i]
                 t2 = templates[j]
                 if check_time_overlap(
-                    t1.start_time, t1.duration_minutes,
-                    t2.start_time, t2.duration_minutes
+                    t1.start_time,
+                    t1.duration_minutes,
+                    t2.start_time,
+                    t2.duration_minutes,
                 ):
                     conflicts.append((t1, t2))
-    
+
     return conflicts

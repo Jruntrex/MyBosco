@@ -4,6 +4,7 @@ SMS notification service via Twilio.
 """
 
 import logging
+
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -14,12 +15,14 @@ def send_sms(to_phone: str, message: str) -> bool:
     Відправляє SMS на вказаний номер телефону.
     Повертає True при успіху, False при помилці.
     """
-    account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', None)
-    auth_token  = getattr(settings, 'TWILIO_AUTH_TOKEN', None)
-    from_number = getattr(settings, 'TWILIO_FROM_NUMBER', None)
+    account_sid = getattr(settings, "TWILIO_ACCOUNT_SID", None)
+    auth_token = getattr(settings, "TWILIO_AUTH_TOKEN", None)
+    from_number = getattr(settings, "TWILIO_FROM_NUMBER", None)
 
     if not all([account_sid, auth_token, from_number]):
-        logger.warning("SMS не відправлено: Twilio не налаштовано (TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER)")
+        logger.warning(
+            "SMS не відправлено: Twilio не налаштовано (TWILIO_ACCOUNT_SID/AUTH_TOKEN/FROM_NUMBER)"
+        )
         return False
 
     if not to_phone:
@@ -28,6 +31,7 @@ def send_sms(to_phone: str, message: str) -> bool:
 
     try:
         from twilio.rest import Client
+
         client = Client(account_sid, auth_token)
         client.messages.create(
             body=message,
@@ -37,7 +41,9 @@ def send_sms(to_phone: str, message: str) -> bool:
         logger.info("SMS успішно відправлено на %s", to_phone)
         return True
     except ImportError:
-        logger.error("SMS не відправлено: пакет 'twilio' не встановлено. Виконайте: pip install twilio")
+        logger.error(
+            "SMS не відправлено: пакет 'twilio' не встановлено. Виконайте: pip install twilio"
+        )
         return False
     except Exception:
         logger.exception("SMS не відправлено: помилка при відправці на %s", to_phone)
@@ -56,7 +62,9 @@ def notify_grade(student, subject_name: str, lesson_date: str, grade_value) -> b
     return send_sms(student.phone, message)
 
 
-def notify_absence(student, subject_name: str, lesson_date: str, absence_name: str, absence_code: str) -> bool:
+def notify_absence(
+    student, subject_name: str, lesson_date: str, absence_name: str, absence_code: str
+) -> bool:
     """Відправляє SMS студенту про відмічений пропуск."""
     if not student.phone:
         return False

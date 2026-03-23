@@ -3,8 +3,11 @@ Management command: seed_rich_content
 Наповнює лекції та уроки за останні два тижні детальним HTML-контентом —
 конспектами, як під час реального заняття, та розгорнутими домашніми завданнями.
 """
+
 import random
-from datetime import date, timedelta, datetime, time as dtime
+from datetime import date, datetime
+from datetime import time as dtime
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -121,10 +124,8 @@ DEFAULT_TOPICS = [
 # ─────────────────────────────────────────────────────────────────────────────
 
 LECTURE_HTML = {
-
     # ── Вища математика ─────────────────────────────────────────────────────
     "Вища математика": [
-
         # Тема: Визначений інтеграл
         """<h2>Визначений інтеграл та його застосування</h2>
 <h3>1. Визначення визначеного інтеграла</h3>
@@ -175,7 +176,6 @@ LECTURE_HTML = {
 <blockquote><strong>∫ₐ⁺∞ f(x) dx = lim_{b→∞} ∫ₐᵇ f(x) dx</strong></blockquote>
 <p>Інтеграл <strong>збігається</strong>, якщо ця границя існує та скінченна; <strong>розбігається</strong> в іншому випадку.</p>
 <p><strong>Класичний приклад:</strong> ∫₁⁺∞ dx/xᵖ збігається при p &gt; 1 та розбігається при p ≤ 1.</p>""",
-
         # Тема: Диференціальні рівняння
         """<h2>Диференціальні рівняння першого порядку</h2>
 <h3>1. Основні поняття та класифікація</h3>
@@ -221,10 +221,8 @@ LECTURE_HTML = {
 <p>Задача Коші: знайти розв'язок y' = f(x, y) при початковій умові y(x₀) = y₀.</p>
 <p><strong>Теорема Піккара:</strong> Якщо f(x,y) та ∂f/∂y неперервні в деякому прямокутнику навколо (x₀, y₀), то існує єдиний розв'язок задачі Коші в деякому околі точки x₀.</p>""",
     ],
-
     # ── ООП ─────────────────────────────────────────────────────────────────
     "Об'єктно-орієнтоване програмування": [
-
         """<h2>Патерни проектування: Singleton, Factory, Observer</h2>
 <h3>1. Що таке патерни проектування?</h3>
 <p>Патерни проектування — це типові рішення для типових проблем, що виникають при проектуванні програмного забезпечення. Вони класифікуються на три категорії:</p>
@@ -327,7 +325,6 @@ class Logger implements Observer {
 <li><strong>Observer</strong> — повідомлення підписників про зміни</li>
 </ul>
 <p>На наступній лекції розглянемо <strong>Decorator, Strategy та Command</strong>.</p>""",
-
         """<h2>SOLID-принципи проектування</h2>
 <h3>Що таке SOLID?</h3>
 <p>SOLID — абревіатура для п'яти принципів об'єктно-орієнтованого проектування, сформульованих Робертом Мартіном. Дотримання цих принципів робить код гнучким, розширюваним та легким для підтримки.</p>
@@ -389,10 +386,8 @@ class OrderService {
 <li><strong>D</strong> — залежи від абстракцій, а не від конкретики</li>
 </ul>""",
     ],
-
     # ── Бази даних ──────────────────────────────────────────────────────────
     "Бази даних": [
-
         """<h2>SQL: складні запити, підзапити, JOIN</h2>
 <h3>1. Типи JOIN</h3>
 <p>Оператор <strong>JOIN</strong> дозволяє об'єднувати рядки з двох або більше таблиць на основі пов'язаного стовпця.</p>
@@ -477,7 +472,6 @@ FROM students s
 JOIN top_students t ON s.id = t.student_id
 ORDER BY t.avg_pts DESC;</pre>
 <p>CTE роблять складні запити читабельнішими та дозволяють рекурсію (рекурсивний CTE).</p>""",
-
         """<h2>Транзакції та рівні ізоляції</h2>
 <h3>1. Що таке транзакція?</h3>
 <p>Транзакція — це послідовність операцій над базою даних, яка виконується як <strong>єдине ціле</strong>. Якщо одна операція зазнає невдачі, всі зміни відкочуються.</p>
@@ -527,10 +521,8 @@ COMMIT;</pre>
 -- Транзакція B:  lock(row 2) → wait(row 1)  ← DEADLOCK!</pre>
 <p><strong>Способи запобігання:</strong> завжди блокувати ресурси в одному порядку, встановлювати таймаути, використовувати SELECT FOR UPDATE SKIP LOCKED.</p>""",
     ],
-
     # ── Веб-технології ──────────────────────────────────────────────────────
     "Веб-технології": [
-
         """<h2>HTTP/HTTPS протокол. REST API</h2>
 <h3>1. HTTP — основи</h3>
 <p><strong>HTTP (HyperText Transfer Protocol)</strong> — протокол прикладного рівня для передачі даних у Вебі. Базується на моделі <em>запит-відповідь</em>.</p>
@@ -595,7 +587,6 @@ POST   /api/lessons/{id}/grade/      → виставити оцінку за з
 <li><strong>Цілісність</strong> — дані не змінено в процесі передачі</li>
 </ul>
 <p>TLS-handshake: обмін сертифікатами → узгодження шифру → обмін ключами → шифрований канал.</p>""",
-
         """<h2>JavaScript: асинхронність, Promise, async/await</h2>
 <h3>1. Однопотокова природа JS та Event Loop</h3>
 <p>JavaScript — <strong>однопотокова</strong> мова. Але браузер (та Node.js) надають Web APIs для асинхронних операцій (таймери, мережа, файли).</p>
@@ -696,10 +687,8 @@ try {
     clearTimeout(timeoutId);
 }</pre>""",
     ],
-
     # ── Алгоритми ───────────────────────────────────────────────────────────
     "Алгоритми та структури даних": [
-
         """<h2>Сортування: merge sort, quick sort, heap sort</h2>
 <h3>1. Складність алгоритмів — нагадування</h3>
 <p>Нотація <strong>O(n)</strong> описує, як зростає час виконання залежно від розміру вхідних даних у найгіршому випадку.</p>
@@ -789,7 +778,6 @@ def heapify(arr, n, i):
 <li><strong>Heap Sort</strong> — гарантовано O(n log n), in-place, але повільніший за quick sort на практиці</li>
 </ul>
 <blockquote>Python: sorted() та list.sort() використовують Timsort — гібрид merge sort + insertion sort, O(n log n), стабільний.</blockquote>""",
-
         """<h2>Динамічне програмування</h2>
 <h3>1. Ідея динамічного програмування</h3>
 <p><strong>Динамічне програмування (ДП)</strong> — метод розв'язання задач шляхом розбиття їх на підзадачі, збереження результатів (мемоізація/таблиця), щоб не обчислювати їх повторно.</p>
@@ -865,10 +853,8 @@ print(lcs("ABCBDAB", "BDCABA"))  # 4</pre>
                 dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
     return dp[m][n]</pre>""",
     ],
-
     # ── Операційні системи ──────────────────────────────────────────────────
     "Операційні системи": [
-
         """<h2>Управління процесами та потоками</h2>
 <h3>1. Процес vs Потік</h3>
 <p><strong>Процес</strong> — екземпляр програми, що виконується. Має власний адресний простір, файлові дескриптори, стек.</p>
@@ -946,10 +932,8 @@ int main() {
 <li><strong>CFS (Completely Fair Scheduler)</strong> — алгоритм Linux, на основі червоно-чорного дерева</li>
 </ul>""",
     ],
-
     # ── Python ──────────────────────────────────────────────────────────────
     "Програмування мовою Python": [
-
         """<h2>Декоратори та генератори в Python</h2>
 <h3>1. Функції як об'єкти першого класу</h3>
 <p>У Python функції є звичайними об'єктами: їх можна передавати як аргументи, повертати з функцій, зберігати в змінних.</p>
@@ -1051,7 +1035,6 @@ def managed_resource(name):
 
 with managed_resource("база даних") as res:
     print(f"Працюємо з {res}")</pre>""",
-
         """<h2>Паралельне програмування: threading, multiprocessing, asyncio</h2>
 <h3>1. GIL та обмеження threading</h3>
 <p><strong>GIL (Global Interpreter Lock)</strong> — м'ютекс CPython, що дозволяє одночасно виконуватись лише одному потоку Python.</p>
@@ -1134,10 +1117,8 @@ with ThreadPoolExecutor(max_workers=4) as executor:
     futures = [executor.submit(some_io_task, arg) for arg in args]
     results = [f.result() for f in futures]</pre>""",
     ],
-
     # ── Безпека інформаційних систем ────────────────────────────────────────
     "Безпека інформаційних систем": [
-
         """<h2>Атаки на веб-додатки: XSS, SQL Injection, CSRF</h2>
 <h3>1. SQL Injection</h3>
 <p>Атаки, при яких зловмисник впроваджує шкідливий SQL-код у запит до бази даних.</p>
@@ -1215,10 +1196,8 @@ User.objects.filter(username=username)</pre>
 </ol>
 <blockquote>Практика: PortSwigger Web Security Academy — безкоштовні лабораторні роботи по кожній атаці: https://portswigger.net/web-security</blockquote>""",
     ],
-
     # ── Дискретна математика ─────────────────────────────────────────────────
     "Дискретна математика": [
-
         """<h2>Теорія графів. Основні поняття та задачі</h2>
 <h3>1. Визначення та термінологія</h3>
 <p><strong>Граф G = (V, E)</strong> — множина вершин V та множина ребер E ⊆ V×V.</p>
@@ -1321,7 +1300,6 @@ DEFAULT_LECTURE_HTML = [
 # ─────────────────────────────────────────────────────────────────────────────
 
 HOMEWORK_RICH = {
-
     "Вища математика": [
         """Опрацювати конспект лекції та параграфи підручника (Кузьменко І.М.) відповідно до теми заняття.
 
@@ -1332,7 +1310,6 @@ HOMEWORK_RICH = {
 
 Підготуватися до усного опитування за ключовими визначеннями та теоремами теми.
 Записати питання, що виникли під час самостійного вивчення — розберемо на наступній лекції.""",
-
         """Завдання до наступного практичного заняття:
 
 Варіант задається за списком у Teams (непарний/парний номер залікової книжки).
@@ -1346,7 +1323,6 @@ HOMEWORK_RICH = {
 Оформлення: розв'язок у зошиті, з повним записом усіх проміжних кроків.
 Здати: на початку наступного практичного заняття.""",
     ],
-
     "Об'єктно-орієнтоване програмування": [
         """Реалізувати один із патернів проектування з лекції (на вибір: Singleton, Factory або Observer) у вигляді окремого класу / ієрархії класів.
 
@@ -1358,7 +1334,6 @@ HOMEWORK_RICH = {
 
 Здати через GitHub Classroom (посилання у Teams) до кінця тижня.
 На наступній практичній роботі — 5-хвилинне усне пояснення свого рішення.""",
-
         """Самостійна робота: SOLID на практиці.
 
 Завдання:
@@ -1369,7 +1344,6 @@ HOMEWORK_RICH = {
 Оформлення: документ PDF або MD з поясненнями та кодом.
 Критерії оцінювання: знайдено ≥ 4 порушень, кожне обґрунтовано, рефакторинг коректний.""",
     ],
-
     "Бази даних": [
         """Практичне завдання: SQL-запити до навчальної бази даних.
 
@@ -1383,7 +1357,6 @@ HOMEWORK_RICH = {
 
 Здати: файл .sql з запитами + скріншоти результатів виконання.
 Дедлайн: до початку наступного лабораторного заняття.""",
-
         """Лабораторна робота №3: Транзакції та рівні ізоляції.
 
 Завдання:
@@ -1395,7 +1368,6 @@ HOMEWORK_RICH = {
 Звіт: скріншоти кожного сценарію + пояснення результатів.
 Захист на наступному занятті: знати відповіді на теоретичні питання про ACID.""",
     ],
-
     "Веб-технології": [
         """Практична робота: розробка REST API на Django.
 
@@ -1414,7 +1386,6 @@ HOMEWORK_RICH = {
 — Документація ендпоінтів у README
 
 Здати через GitHub Classroom. Дедлайн — п'ятниця 23:59.""",
-
         """Самостійне завдання: JavaScript async/await.
 
 Написати невеликий SPA (Single Page Application), що:
@@ -1426,7 +1397,6 @@ HOMEWORK_RICH = {
 Технології: HTML + CSS + Vanilla JS (ES2022+), без jQuery.
 Обов'язково: async/await, try/catch, AbortController для скасування запитів.""",
     ],
-
     "Алгоритми та структури даних": [
         """Практичне завдання: реалізація алгоритмів сортування.
 
@@ -1442,7 +1412,6 @@ HOMEWORK_RICH = {
 
 Здати: Jupyter notebook (.ipynb) з кодом, тестами та графіками.
 Дедлайн: до наступної лекції.""",
-
         """Домашнє завдання: динамічне програмування.
 
 Задача 1 (обов'язкова):
@@ -1459,7 +1428,6 @@ HOMEWORK_RICH = {
 
 Всі задачі перевіряються на системі judge (посилання у Teams).""",
     ],
-
     "Операційні системи": [
         """Лабораторна робота №4: Управління процесами в Linux.
 
@@ -1479,7 +1447,6 @@ HOMEWORK_RICH = {
 
 Звіт: код + результати + висновки. Захист — усно.""",
     ],
-
     "Програмування мовою Python": [
         """Практична робота: декоратори та генератори.
 
@@ -1492,7 +1459,6 @@ HOMEWORK_RICH = {
 
 Для кожного — написати тести (pytest).
 Здати через GitHub Classroom.""",
-
         """Домашня робота: asyncio та aiohttp.
 
 Написати асинхронний веб-скрапер:
@@ -1507,7 +1473,6 @@ HOMEWORK_RICH = {
 — Логування прогресу (tqdm або просте виведення)
 — Тести з використанням aioresponses (mock HTTP)""",
     ],
-
     "Безпека інформаційних систем": [
         """Лабораторна робота: аналіз вразливостей веб-додатку.
 
@@ -1534,7 +1499,6 @@ DEFAULT_HOMEWORK = [
 3. Підготувати 2-3 запитання до наступного заняття.
 
 Підготуватися до усного опитування за пройденим матеріалом.""",
-
     """Самостійне опрацювання матеріалу заняття.
 
 1. Переглянути презентацію з Teams, доповнити конспект прикладами з лекції.
@@ -1546,28 +1510,28 @@ DEFAULT_HOMEWORK = [
 
 class Command(BaseCommand):
     help = (
-        'Наповнює лекції та уроки за останні два тижні детальним HTML-контентом: '
-        'конспекти лекцій, теми, домашні завдання.'
+        "Наповнює лекції та уроки за останні два тижні детальним HTML-контентом: "
+        "конспекти лекцій, теми, домашні завдання."
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--days', type=int, default=14,
-            help='Кількість минулих днів (за замовчуванням: 14)'
+            "--days",
+            type=int,
+            default=14,
+            help="Кількість минулих днів (за замовчуванням: 14)",
         )
         parser.add_argument(
-            '--force', action='store_true',
-            help='Перезаписати існуючий вміст'
+            "--force", action="store_true", help="Перезаписати існуючий вміст"
         )
         parser.add_argument(
-            '--dry-run', action='store_true',
-            help='Показати зміни без збереження'
+            "--dry-run", action="store_true", help="Показати зміни без збереження"
         )
 
     def handle(self, *args, **options):
-        days = options['days']
-        force = options['force']
-        dry_run = options['dry_run']
+        days = options["days"]
+        force = options["force"]
+        dry_run = options["dry_run"]
 
         today = date.today()
         since = today - timedelta(days=days)
@@ -1576,13 +1540,17 @@ class Command(BaseCommand):
             date__gte=since,
             date__lte=today,
             is_cancelled=False,
-        ).select_related('subject', 'evaluation_type')
+        ).select_related("subject", "evaluation_type")
 
         total = lessons.count()
-        self.stdout.write(f'Знайдено {total} занять за {since} — {today}')
+        self.stdout.write(f"Знайдено {total} занять за {since} — {today}")
 
         if total == 0:
-            self.stdout.write(self.style.WARNING('Занять не знайдено. Перевірте дати або запустіть seed-команду для створення занять.'))
+            self.stdout.write(
+                self.style.WARNING(
+                    "Занять не знайдено. Перевірте дати або запустіть seed-команду для створення занять."
+                )
+            )
             return
 
         updated = []
@@ -1591,7 +1559,9 @@ class Command(BaseCommand):
         for lesson in lessons:
             changed = False
             subj = lesson.subject.name
-            etype = (lesson.evaluation_type.name or '') if lesson.evaluation_type else ''
+            etype = (
+                (lesson.evaluation_type.name or "") if lesson.evaluation_type else ""
+            )
 
             # ── Тема заняття ─────────────────────────────────────────────
             if not lesson.topic or force:
@@ -1613,7 +1583,7 @@ class Command(BaseCommand):
             if not lesson.homework or force:
                 hw_pool = HOMEWORK_RICH.get(subj, DEFAULT_HOMEWORK)
                 # для лекцій вибираємо перший варіант, для практик — другий
-                if 'Практична' in etype or 'Лабораторна' in etype:
+                if "Практична" in etype or "Лабораторна" in etype:
                     idx = (lesson.id + 1) % len(hw_pool)
                 else:
                     idx = lesson.id % len(hw_pool)
@@ -1633,21 +1603,24 @@ class Command(BaseCommand):
                 updated.append(lesson)
 
         if dry_run:
-            self.stdout.write(self.style.WARNING(
-                f'[DRY RUN] Буде оновлено {len(updated)} занять: '
-                f'тем={upd_topic}, матеріалів={upd_mat}, ДЗ={upd_hw}'
-            ))
+            self.stdout.write(
+                self.style.WARNING(
+                    f"[DRY RUN] Буде оновлено {len(updated)} занять: "
+                    f"тем={upd_topic}, матеріалів={upd_mat}, ДЗ={upd_hw}"
+                )
+            )
             for l in updated[:5]:
-                self.stdout.write(f'  • {l.date} | {l.subject.name} | {l.topic[:60]}')
+                self.stdout.write(f"  • {l.date} | {l.subject.name} | {l.topic[:60]}")
             return
 
         if updated:
             Lesson.objects.bulk_update(
-                updated,
-                ['topic', 'materials', 'homework', 'deadline']
+                updated, ["topic", "materials", "homework", "deadline"]
             )
 
-        self.stdout.write(self.style.SUCCESS(
-            f'Готово! Оновлено {len(updated)} занять: '
-            f'тем={upd_topic}, матеріалів={upd_mat}, ДЗ={upd_hw}'
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Готово! Оновлено {len(updated)} занять: "
+                f"тем={upd_topic}, матеріалів={upd_mat}, ДЗ={upd_hw}"
+            )
+        )

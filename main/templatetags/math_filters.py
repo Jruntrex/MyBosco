@@ -10,7 +10,7 @@ def mul(value, arg):
     try:
         return int(value) * int(arg)
     except (ValueError, TypeError):
-        return ''
+        return ""
 
 
 @register.filter
@@ -19,4 +19,4 @@ def sub(value, arg):
     try:
         return int(value) - int(arg)
     except (ValueError, TypeError):
-        return ''
+        return ""
