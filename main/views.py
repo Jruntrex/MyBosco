@@ -1975,6 +1975,235 @@ def report_weekly_absences_view(request):
     return render(request, 'report_absences.html', context)
 
 
+@role_required('admin')
+def report_subjects_view(request):
+    """Звіт: Успішність по предметах — середній бал, кількість студентів, відсоток успішних."""
+    course = request.GET.get('course', '')
+    specialty = request.GET.get('specialty', '')
+
+    subjects_qs = Subject.objects.all()
+    if course or specialty:
+        ta_filter = Q()
+        if course:
+            ta_filter &= Q(teachingassignment__group__course=course)
+        if specialty:
+            ta_filter &= Q(teachingassignment__group__specialty__icontains=specialty)
+        subjects_qs = subjects_qs.filter(ta_filter).distinct()
+
+    report_data = []
+    for subject in subjects_qs:
+        perf_qs = StudentPerformance.objects.filter(
+            lesson__subject=subject,
+            earned_points__isnull=False,
+        )
+        if course:
+            perf_qs = perf_qs.filter(student__group__course=course)
+        if specialty:
+            perf_qs = perf_qs.filter(student__group__specialty__icontains=specialty)
+
+        stats = perf_qs.aggregate(
+            avg_pts=Avg('earned_points'),
+            total=Count('id'),
+            lesson_count=Count('lesson_id', distinct=True),
+            student_count=Count('student_id', distinct=True),
+        )
+        if not stats['total']:
+            continue
+
+        passing = perf_qs.filter(
+            earned_points__gte=F('lesson__max_points') * 0.6
+        ).count()
+
+        report_data.append({
+            'name': subject.name,
+            'credits': subject.credits,
+            'lesson_count': stats['lesson_count'] or 0,
+            'student_count': stats['student_count'] or 0,
+            'avg_points': round(float(stats['avg_pts'] or 0), 2),
+            'grade_count': stats['total'] or 0,
+            'pass_rate': round(passing / stats['total'] * 100, 1) if stats['total'] else 0,
+        })
+
+    report_data.sort(key=lambda x: x['avg_points'], reverse=True)
+
+    if request.GET.get('export') == 'csv':
+        rows = [
+            [r['name'], r['credits'], r['lesson_count'], r['student_count'], r['avg_points'], f"{r['pass_rate']}%"]
+            for r in report_data
+        ]
+        return generate_csv_response(
+            f"subjects_report_{date.today()}",
+            ['Предмет', 'ECTS', 'Занять', 'Студентів', 'Сер. бал', '% успішних'],
+            rows
+        )
+
+    specialties = StudyGroup.objects.exclude(specialty='').values_list('specialty', flat=True).distinct()
+    courses = StudyGroup.objects.exclude(course__isnull=True).values_list('course', flat=True).distinct().order_by('course')
+
+    context = {
+        'report_data': report_data,
+        'report_title': 'Звіт: Успішність по предметах',
+        'specialties': specialties,
+        'courses': courses,
+        'active_page': 'reports',
+    }
+    return render(request, 'report_subjects.html', context)
+
+
+@role_required('admin')
+def report_at_risk_view(request):
+    """Звіт: Студенти в зоні ризику — поєднання низьких оцінок та пропусків."""
+    group_id = request.GET.get('group', '')
+    course = request.GET.get('course', '')
+    specialty = request.GET.get('specialty', '')
+    absence_threshold = int(request.GET.get('absence_threshold', 3) or 3)
+    grade_threshold = float(request.GET.get('grade_threshold', 60) or 60)
+
+    students = User.objects.filter(role='student', is_active=True)
+    if group_id:
+        students = students.filter(group_id=group_id)
+    if course:
+        students = students.filter(group__course=course)
+    if specialty:
+        students = students.filter(group__specialty__icontains=specialty)
+
+    absence_filter = Q(studentperformance__absence__isnull=False)
+    unexcused_filter = absence_filter & Q(studentperformance__absence__is_respectful=False)
+    grade_filter = Q(studentperformance__earned_points__isnull=False)
+
+    students = students.annotate(
+        total_absences=Count('studentperformance', filter=absence_filter),
+        unexcused_absences=Count('studentperformance', filter=unexcused_filter),
+        avg_grade=Avg('studentperformance__earned_points', filter=grade_filter),
+        grade_count=Count('studentperformance', filter=grade_filter),
+    ).select_related('group')
+
+    report_data = []
+    for student in students:
+        avg = float(student.avg_grade or 0)
+        unexcused = student.unexcused_absences
+
+        has_absence_risk = unexcused >= absence_threshold
+        has_grade_risk = student.grade_count > 0 and avg < grade_threshold
+
+        if not has_absence_risk and not has_grade_risk:
+            continue
+
+        risk_level = 'high' if (has_absence_risk and has_grade_risk) else 'medium'
+        report_data.append({
+            'full_name': student.full_name,
+            'group': student.group,
+            'avg_grade': round(avg, 1),
+            'total_absences': student.total_absences,
+            'unexcused_absences': unexcused,
+            'grade_count': student.grade_count,
+            'risk_level': risk_level,
+            'has_absence_risk': has_absence_risk,
+            'has_grade_risk': has_grade_risk,
+        })
+
+    report_data.sort(key=lambda x: (0 if x['risk_level'] == 'high' else 1, -x['unexcused_absences']))
+
+    if request.GET.get('export') == 'csv':
+        rows = [
+            [
+                r['full_name'],
+                r['group'].name if r['group'] else '-',
+                r['avg_grade'],
+                r['total_absences'],
+                r['unexcused_absences'],
+                'Критичний' if r['risk_level'] == 'high' else 'Помірний',
+            ]
+            for r in report_data
+        ]
+        return generate_csv_response(
+            f"at_risk_report_{date.today()}",
+            ['ПІБ', 'Група', 'Сер. бал', 'Всього пропусків', 'Неповажні', 'Рівень ризику'],
+            rows
+        )
+
+    groups = StudyGroup.objects.all()
+    specialties = StudyGroup.objects.exclude(specialty='').values_list('specialty', flat=True).distinct()
+    courses = StudyGroup.objects.exclude(course__isnull=True).values_list('course', flat=True).distinct().order_by('course')
+
+    context = {
+        'report_data': report_data,
+        'report_title': 'Звіт: Студенти в зоні ризику',
+        'groups': groups,
+        'specialties': specialties,
+        'courses': courses,
+        'absence_threshold': absence_threshold,
+        'grade_threshold': grade_threshold,
+        'active_page': 'reports',
+    }
+    return render(request, 'report_at_risk.html', context)
+
+
+@role_required('admin')
+def report_homework_view(request):
+    """Звіт: Здача домашніх завдань — відсоток виконання по студентах."""
+    group_id = request.GET.get('group', '')
+    subject_id = request.GET.get('subject', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    students = User.objects.filter(role='student')
+    if group_id:
+        students = students.filter(group_id=group_id)
+
+    hw_filter = Q()
+    if subject_id:
+        hw_filter &= Q(homework_submissions__lesson__subject_id=subject_id)
+    if date_from:
+        hw_filter &= Q(homework_submissions__lesson__date__gte=date_from)
+    if date_to:
+        hw_filter &= Q(homework_submissions__lesson__date__lte=date_to)
+
+    submitted_filter = hw_filter & Q(homework_submissions__status__in=['turned_in', 'graded'])
+
+    students = students.annotate(
+        total_hw=Count('homework_submissions', filter=hw_filter),
+        submitted_hw=Count('homework_submissions', filter=submitted_filter),
+    ).filter(total_hw__gt=0).select_related('group')
+
+    report_data = []
+    for student in students:
+        completion_rate = round(student.submitted_hw / student.total_hw * 100, 1) if student.total_hw else 0
+        report_data.append({
+            'full_name': student.full_name,
+            'group': student.group,
+            'total_hw': student.total_hw,
+            'submitted_hw': student.submitted_hw,
+            'missing_hw': student.total_hw - student.submitted_hw,
+            'completion_rate': completion_rate,
+        })
+
+    report_data.sort(key=lambda x: x['completion_rate'])
+
+    if request.GET.get('export') == 'csv':
+        rows = [
+            [r['full_name'], r['group'].name if r['group'] else '-', r['total_hw'], r['submitted_hw'], f"{r['completion_rate']}%"]
+            for r in report_data
+        ]
+        return generate_csv_response(
+            f"homework_report_{date.today()}",
+            ['ПІБ', 'Група', 'Всього ДЗ', 'Здано', '% здачі'],
+            rows
+        )
+
+    groups = StudyGroup.objects.all()
+    all_subjects = Subject.objects.all()
+
+    context = {
+        'report_data': report_data,
+        'report_title': 'Звіт: Здача домашніх завдань',
+        'groups': groups,
+        'all_subjects': all_subjects,
+        'active_page': 'reports',
+    }
+    return render(request, 'report_homework.html', context)
+
+
 # =========================
 # 5. EVALUATION TYPES MANAGEMENT
 # =========================
@@ -2585,21 +2814,34 @@ def api_news_delete_comment(request: HttpRequest, pk: int) -> JsonResponse:
 # СПОВІЩЕННЯ
 # =========================
 
+def _build_notif_link(n) -> str:
+    """Повертає URL для переходу за сповіщенням."""
+    if n.link:
+        return n.link
+    if n.lesson_id:
+        return f"/lesson/{n.lesson_id}/"
+    if n.post_id:
+        return f"/news/#post-{n.post_id}"
+    return ""
+
+
 @login_required
 def api_notifications_list(request: HttpRequest) -> JsonResponse:
-    """Повертає останні 30 сповіщень поточного користувача."""
+    """Повертає останні 50 сповіщень поточного користувача."""
     notifications = (
         Notification.objects
         .filter(recipient=request.user)
-        .order_by('-created_at')[:30]
+        .order_by('-created_at')[:50]
     )
     unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
 
     TYPE_ICONS = {
-        'news':    '📢',
-        'comment': '💬',
-        'grade':   '📊',
-        'absence': '⚠️',
+        'news':         '📢',
+        'comment':      '💬',
+        'grade':        '📊',
+        'absence':      '⚠️',
+        'homework':     '📝',
+        'private_chat': '🔒',
     }
 
     data = [
@@ -2611,7 +2853,7 @@ def api_notifications_list(request: HttpRequest) -> JsonResponse:
             'message':    n.message,
             'is_read':    n.is_read,
             'created_at': n.created_at.strftime('%d.%m.%Y %H:%M'),
-            'post_id':    n.post_id,
+            'link':       _build_notif_link(n),
         }
         for n in notifications
     ]
@@ -2628,10 +2870,89 @@ def api_notifications_mark_read(request: HttpRequest, pk: int) -> JsonResponse:
 
 @login_required
 @require_POST
+def api_notifications_mark_unread(request: HttpRequest, pk: int) -> JsonResponse:
+    """Позначає одне сповіщення як непрочитане."""
+    Notification.objects.filter(id=pk, recipient=request.user).update(is_read=False)
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
 def api_notifications_mark_all_read(request: HttpRequest) -> JsonResponse:
     """Позначає всі сповіщення поточного користувача як прочитані."""
     Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
     return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def api_notifications_delete(request: HttpRequest, pk: int) -> JsonResponse:
+    """Видаляє одне сповіщення."""
+    Notification.objects.filter(id=pk, recipient=request.user).delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def api_notifications_delete_all_read(request: HttpRequest) -> JsonResponse:
+    """Видаляє всі прочитані сповіщення поточного користувача."""
+    Notification.objects.filter(recipient=request.user, is_read=True).delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def api_notifications_delete_all(request: HttpRequest) -> JsonResponse:
+    """Видаляє всі сповіщення поточного користувача."""
+    Notification.objects.filter(recipient=request.user).delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def notifications_page_view(request: HttpRequest) -> HttpResponse:
+    """Повна сторінка сповіщень з фільтрами, пагінацією та керуванням."""
+    from django.core.paginator import Paginator
+
+    TYPE_FILTER_CHOICES = [
+        ('',             'Усі'),
+        ('grade',        'Оцінки'),
+        ('absence',      'Пропуски'),
+        ('homework',     'Домашні завдання'),
+        ('private_chat', 'Приватний чат'),
+        ('comment',      'Коментарі'),
+        ('news',         'Новини'),
+    ]
+
+    filter_type   = request.GET.get('type', '')
+    filter_status = request.GET.get('status', '')  # '' | 'unread' | 'read'
+
+    qs = Notification.objects.filter(recipient=request.user)
+    if filter_type:
+        qs = qs.filter(notif_type=filter_type)
+    if filter_status == 'unread':
+        qs = qs.filter(is_read=False)
+    elif filter_status == 'read':
+        qs = qs.filter(is_read=True)
+
+    paginator = Paginator(qs, 25)
+    page_obj  = paginator.get_page(request.GET.get('page', 1))
+
+    # Build link for each notification
+    for n in page_obj:
+        n.computed_link = _build_notif_link(n)
+
+    unread_total = Notification.objects.filter(recipient=request.user, is_read=False).count()
+
+    context = {
+        'page_obj':      page_obj,
+        'filter_type':   filter_type,
+        'filter_status': filter_status,
+        'type_choices':  TYPE_FILTER_CHOICES,
+        'unread_total':  unread_total,
+        'total_count':   qs.count(),
+        'active_page':   'notifications',
+    }
+    return render(request, 'notifications.html', context)
 
 
 # =========================
@@ -2691,8 +3012,10 @@ def lessons_list_view(request: HttpRequest) -> HttpResponse:
             hw_type = assignment.evaluation_types.filter(is_homework_type=True).first()
             if hw_type:
                 hw_weights[f"{assignment.subject_id}_{assignment.group_id}"] = float(hw_type.weight_percent)
+        lessons_by_subject = lessons_qs.order_by('subject__name', '-date', 'start_time')
         context = {
             'lessons': lessons_qs,
+            'lessons_by_subject': lessons_by_subject,
             'subjects': subjects,
             'subject_filter': subject_filter,
             'submission_lesson_ids': submission_lesson_ids,
@@ -2968,6 +3291,21 @@ def api_lesson_turn_in(request: HttpRequest, lesson_id: int) -> JsonResponse:
             return JsonResponse({'status': 'error', 'message': 'Неможливо здати в поточному статусі'}, status=400)
         submission.status = 'turned_in'
         submission.save(update_fields=['status'])
+
+        # --- Сповіщення викладачу про здачу ДЗ ---
+        try:
+            subject_name = lesson.subject.name if lesson.subject_id else "Предмет"
+            Notification.objects.create(
+                recipient=lesson.teacher,
+                notif_type='homework',
+                title=f"Студент здав ДЗ — {user.full_name}",
+                message=f"{subject_name} · {lesson.topic or lesson.date.strftime('%d.%m.%Y') if lesson.date else ''}",
+                link=f"/lesson/{lesson.id}/",
+                lesson=lesson,
+            )
+        except Exception:
+            logger.exception("api_lesson_turn_in: не вдалося створити сповіщення")
+
         return JsonResponse({'status': 'success', 'new_status': 'turned_in'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -2992,6 +3330,35 @@ def api_add_private_comment(request: HttpRequest, submission_id: int) -> JsonRes
             return JsonResponse({'status': 'error', 'message': 'Текст порожній'}, status=400)
 
         comment = PrivateComment.objects.create(submission=submission, author=user, text=text)
+
+        # --- Сповіщення іншій стороні про новий приватний коментар ---
+        try:
+            lesson = submission.lesson
+            subject_name = lesson.subject.name if lesson.subject_id else "Предмет"
+            lesson_link = f"/lesson/{lesson.id}/"
+            if user.role == 'teacher':
+                # Викладач написав → сповіщення студенту
+                Notification.objects.create(
+                    recipient=submission.student,
+                    notif_type='private_chat',
+                    title=f"Нове повідомлення від викладача — {subject_name}",
+                    message=text[:120],
+                    link=lesson_link,
+                    lesson=lesson,
+                )
+            else:
+                # Студент написав → сповіщення викладачу
+                Notification.objects.create(
+                    recipient=lesson.teacher,
+                    notif_type='private_chat',
+                    title=f"Відповідь студента по ДЗ — {submission.student.full_name}",
+                    message=text[:120],
+                    link=lesson_link,
+                    lesson=lesson,
+                )
+        except Exception:
+            logger.exception("api_add_private_comment: не вдалося створити сповіщення")
+
         return JsonResponse({
             'status': 'success',
             'comment': {
@@ -3025,6 +3392,23 @@ def api_grade_submission(request: HttpRequest, submission_id: int) -> JsonRespon
             submission.grade = grade_val
         submission.status = 'graded'
         submission.save(update_fields=['grade', 'status'])
+
+        # --- Сповіщення студенту про оцінку за ДЗ ---
+        try:
+            lesson = submission.lesson
+            subject_name = lesson.subject.name if lesson.subject_id else "Предмет"
+            grade_str = str(int(grade)) if grade is not None else "—"
+            Notification.objects.create(
+                recipient=submission.student,
+                notif_type='homework',
+                title=f"Оцінено домашнє завдання — {subject_name}",
+                message=f"Оцінка: {grade_str} балів · {lesson.topic or lesson.date.strftime('%d.%m.%Y') if lesson.date else ''}",
+                link=f"/lesson/{lesson.id}/",
+                lesson=lesson,
+            )
+        except Exception:
+            logger.exception("api_grade_submission: не вдалося створити сповіщення")
+
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

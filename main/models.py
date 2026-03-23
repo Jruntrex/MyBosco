@@ -583,10 +583,12 @@ class Comment(models.Model):
 class Notification(models.Model):
     """Сповіщення для користувачів."""
     NOTIF_TYPES = [
-        ('news',    'Новини'),
-        ('comment', 'Коментар'),
-        ('grade',   'Оцінка'),
-        ('absence', 'Пропуск'),
+        ('news',         'Новини'),
+        ('comment',      'Коментар'),
+        ('grade',        'Оцінка'),
+        ('absence',      'Пропуск'),
+        ('homework',     'Домашнє завдання'),
+        ('private_chat', 'Приватний чат'),
     ]
 
     recipient  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', verbose_name="Отримувач")
@@ -595,10 +597,16 @@ class Notification(models.Model):
     message    = models.TextField(blank=True, verbose_name="Текст")
     is_read    = models.BooleanField(default=False, verbose_name="Прочитано")
     created_at = models.DateTimeField(auto_now_add=True)
+    link       = models.CharField(max_length=500, blank=True, verbose_name="Посилання")
     post       = models.ForeignKey(
         'Post', on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='notifications', verbose_name="Допис"
+    )
+    lesson     = models.ForeignKey(
+        'Lesson', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='notifications', verbose_name="Урок"
     )
 
     class Meta:

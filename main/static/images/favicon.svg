@@ -1,14 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#2563eb"/>
-      <stop offset="100%" style="stop-color:#4338ca"/>
-    </linearGradient>
-  </defs>
-  <rect width="100" height="100" rx="22" fill="url(#bg)"/>
-  <!-- icon centered: translate to center(50,50), scale up, then offset by half of 24 -->
-  <g transform="translate(50,50) scale(3.2) translate(-12,-12)" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 14l9-5-9-5-9 5 9 5z"/>
-    <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.908V14z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 186">
+  <rect width="196" height="186" fill="white"/>
+  <g fill="#1a2869">
+    <!-- Left book pillar -->
+    <rect x="8" y="16" width="14" height="130" rx="3"/>
+
+    <!-- M: left vertical -->
+    <rect x="28" y="16" width="14" height="130" rx="2"/>
+
+    <!-- M: left diagonal -->
+    <polygon points="42,16 54,16 74,76 62,76"/>
+
+    <!-- M: right diagonal -->
+    <polygon points="62,76 74,76 94,16 82,16"/>
+
+    <!-- M: right vertical -->
+    <rect x="94" y="16" width="14" height="130" rx="2"/>
+
+    <!-- B: left vertical -->
+    <rect x="116" y="16" width="14" height="130" rx="2"/>
+
+    <!-- B: top bump -->
+    <path d="M130,16 Q164,16 164,49 Q164,82 130,82 L130,70 Q150,70 150,49 Q150,28 130,28 Z"/>
+
+    <!-- B: bottom bump -->
+    <path d="M130,82 Q168,82 168,111 Q168,146 130,146 L130,134 Q154,134 154,111 Q154,96 130,96 Z"/>
+
+    <!-- Right book pillar -->
+    <rect x="176" y="16" width="14" height="130" rx="3"/>
+
+    <!-- Bottom book spine curve -->
+    <path d="M8,146 Q97,183 190,146" stroke="#1a2869" stroke-width="10" fill="none" stroke-linecap="round"/>
   </g>
 </svg>

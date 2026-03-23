@@ -549,12 +549,15 @@ def save_grade(
         subject_name = current_lesson.subject.name if current_lesson.subject_id else "Предмет"
         lesson_date  = current_lesson.date.strftime('%d.%m.%Y') if current_lesson.date else ''
         student = User.objects.only('id', 'phone').get(pk=student_id)
+        lesson_link = f"/lesson/{current_lesson.id}/" if current_lesson.id else ""
         if grade_value is not None:
             Notification.objects.create(
                 recipient_id=student_id,
                 notif_type='grade',
                 title=f"Нова оцінка з {subject_name}",
                 message=f"{lesson_date}: {grade_value} балів",
+                link=lesson_link,
+                lesson=current_lesson,
             )
             notify_grade(student, subject_name, lesson_date, grade_value)
         elif absence_obj is not None:
@@ -563,6 +566,8 @@ def save_grade(
                 notif_type='absence',
                 title=f"Відмічено пропуск з {subject_name}",
                 message=f"{lesson_date}: {absence_obj.name} ({absence_obj.code})",
+                link=lesson_link,
+                lesson=current_lesson,
             )
             notify_absence(student, subject_name, lesson_date, absence_obj.name, absence_obj.code)
     except Exception:

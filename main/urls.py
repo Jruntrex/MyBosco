@@ -56,6 +56,9 @@ urlpatterns = [
         views.report_weekly_absences_view,
         name='report_weekly_absences',
     ),
+    path('admin/reports/subjects/', views.report_subjects_view, name='report_subjects'),
+    path('admin/reports/at-risk/', views.report_at_risk_view, name='report_at_risk'),
+    path('admin/reports/homework/', views.report_homework_view, name='report_homework'),
     # =========================
     # 4. ВИКЛАДАЧ ТА ЖУРНАЛ
     # =========================
@@ -94,9 +97,14 @@ urlpatterns = [
     # =========================
     # 7. СПОВІЩЕННЯ
     # =========================
+    path('notifications/', views.notifications_page_view, name='notifications_page'),
     path('api/notifications/', views.api_notifications_list, name='api_notifications_list'),
     path('api/notifications/mark-read/<int:pk>/', views.api_notifications_mark_read, name='api_notifications_mark_read'),
+    path('api/notifications/mark-unread/<int:pk>/', views.api_notifications_mark_unread, name='api_notifications_mark_unread'),
     path('api/notifications/mark-all-read/', views.api_notifications_mark_all_read, name='api_notifications_mark_all_read'),
+    path('api/notifications/delete/<int:pk>/', views.api_notifications_delete, name='api_notifications_delete'),
+    path('api/notifications/delete-all-read/', views.api_notifications_delete_all_read, name='api_notifications_delete_all_read'),
+    path('api/notifications/delete-all/', views.api_notifications_delete_all, name='api_notifications_delete_all'),
     # =========================
     # 8. ДЕТАЛІ УРОКУ ТА ДЗ
     # =========================

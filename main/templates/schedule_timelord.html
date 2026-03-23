@@ -1,192 +1,109 @@
 {% extends "base.html" %}
 {% load journal_filters %}
 
-{% block title %}Розклад занять - MyBosco TimeLord{% endblock %}
+{% block title %}Розклад занять - MyBosco{% endblock %}
 
-{% block extra_head %}
-<style>
-    .classic-schedule-container {
-        background: rgb(var(--bg-surface));
-        border: 1px solid rgb(var(--border-color));
-        border-radius: 1.5rem;
-        padding: 1.5rem;
-        margin-top: 1.5rem;
-        box-shadow: 0 4px 24px -4px rgba(0,0,0,0.08);
-    }
-
-    .classic-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0 6px;
-    }
-
-    .classic-table th {
-        padding: 10px 14px;
-        color: rgb(var(--text-muted));
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.7rem;
-        letter-spacing: 0.06em;
-    }
-
-    .classic-table tr:not(thead tr) {
-        background: rgb(var(--bg-main));
-        transition: all 0.2s ease;
-        border-radius: 12px;
-    }
-
-    .classic-table tr:not(thead tr):hover {
-        background: rgb(var(--bg-surface));
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    }
-
-    .classic-table td {
-        padding: 14px;
-        vertical-align: middle;
-        color: rgb(var(--text-main));
-    }
-
-    .classic-table td:first-child {
-        border-top-left-radius: 12px;
-        border-bottom-left-radius: 12px;
-    }
-
-    .classic-table td:last-child {
-        border-top-right-radius: 12px;
-        border-bottom-right-radius: 12px;
-    }
-
-    .day-label-new {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
-        color: white;
-        font-weight: 800;
-        text-align: center;
-        width: 80px;
-    }
-
-    .lesson-num {
-        font-weight: 800;
-        color: rgb(var(--text-main));
-        font-size: 1.1rem;
-    }
-
-    .lesson-time {
-        font-weight: 600;
-        font-size: 0.8rem;
-        color: rgb(var(--text-muted));
-    }
-
-    .subject-cell {
-        font-weight: 800;
-        color: rgb(var(--text-main));
-        font-size: 1rem;
-    }
-
-    .classroom-badge {
-        background: rgba(16,185,129,0.12);
-        color: rgb(var(--color-success));
-        padding: 4px 12px;
-        border-radius: 9999px;
-        font-weight: 700;
-        font-size: 0.75rem;
-    }
-
-    .teacher-name {
-        color: rgb(var(--text-muted));
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-</style>
-{% endblock extra_head %}
-
-{% block header_title %}ГРАФІК ЗАНЯТЬ{% endblock %}
+{% block header_title %}Графік Занять{% endblock %}
+{% block page_title_heading %}{% endblock %}
 
 {% block content %}
-<div class="animate-fade-in">
-    <!-- Top Header -->
-    <div class="bg-surface rounded-2xl border border-border p-5 flex justify-between items-center mb-6 shadow-sm">
-        <div class="flex items-center gap-6">
-            <div class="bg-primary text-white px-5 py-2 rounded-xl font-bold text-lg shadow-sm">
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Header Card -->
+    <div class="glass-panel rounded-[2rem] p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl"></div>
+        <div class="relative z-10 flex items-center gap-4">
+            <div class="bg-primary/10 text-primary px-5 py-2.5 rounded-2xl font-black text-lg">
                 {% if group %}{{ group.name }}{% else %}Оберіть групу{% endif %}
             </div>
-            <div class="text-mutedText font-semibold text-base">
+            <div class="text-mutedText font-semibold">
                 {{ start_of_week|date:"d.m" }} — {{ end_of_week|date:"d.m.Y" }}
             </div>
         </div>
 
-        <div class="flex gap-4 items-center">
+        <div class="relative z-10 flex flex-wrap gap-2 items-center">
+            <!-- Week navigation -->
             <div class="flex gap-1">
                 <a href="?week={{ week_shift|add:-1 }}{% if group %}&group_id={{ group.id }}{% endif %}"
-                    class="px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-mainText transition-all">«</a>
+                    class="px-4 py-2.5 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-primary transition-all">‹</a>
                 <a href="?week=0{% if group %}&group_id={{ group.id }}{% endif %}"
-                    class="px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-mainText transition-all">Сьогодні</a>
+                    class="px-4 py-2.5 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-primary transition-all">Сьогодні</a>
                 <a href="?week={{ week_shift|add:1 }}{% if group %}&group_id={{ group.id }}{% endif %}"
-                    class="px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-mainText transition-all">»</a>
+                    class="px-4 py-2.5 bg-background border border-border rounded-xl text-sm font-bold text-mutedText hover:bg-surface hover:text-primary transition-all">›</a>
             </div>
 
+            <!-- Group selector -->
             <select onchange="location.href='?week={{ week_shift }}&group_id=' + this.value"
-                class="rounded-xl border-border bg-surface text-mainText font-bold px-4 py-2 focus:ring-0 focus:border-primary transition-colors text-sm">
-                <option value="">-- ОБЕРІТЬ ГРУПУ --</option>
+                class="px-4 py-2.5 bg-background border border-border rounded-xl text-mainText font-medium text-sm focus:outline-none focus:border-primary transition-all cursor-pointer">
+                <option value="">-- Оберіть групу --</option>
                 {% for g in all_groups %}
-                <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>Група: {{ g.name }}
-                </option>
+                <option value="{{ g.id }}" {% if group and group.id == g.id %}selected{% endif %}>{{ g.name }}</option>
                 {% endfor %}
             </select>
 
             {% if user.role == 'admin' %}
             <a href="{% url 'schedule_editor' %}"
-                class="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-sm">РЕДАГУВАТИ ✨</a>
+                class="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-sm">
+                Редагувати
+            </a>
             {% endif %}
         </div>
     </div>
 
-    <!-- Classic Table -->
-    <div class="classic-schedule-container">
-        <table class="classic-table">
-            <thead>
-                <tr>
-                    <th style="width: 50px;">ДЕНЬ</th>
-                    <th style="width: 40px;">ПАРА</th>
-                    <th style="width: 120px;">ГОДИНА</th>
-                    <th>НАЗВА ПРЕДМЕТА</th>
-                    <th style="width: 100px;">АУДИТОРІЯ</th>
-                    <th style="width: 200px;">ВИКЛАДАЧ</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for day_data in week_days %}
-                {% for lesson_num in "1,2,3,4,5,6"|split:"," %}
-                <tr>
-                    {% if forloop.first %}
-                    <td rowspan="6" class="day-label-new">
-                        <div class="text-xs opacity-80">{{ day_data.day_name|upper }}</div>
-                        <div class="text-lg">{{ day_data.date|date:"d.m" }}</div>
-                    </td>
-                    {% endif %}
-
-                    <td class="lesson-num">{{ lesson_num }}</td>
-                    <td class="lesson-time">{% lesson_hours lesson_num %}</td>
-
-                    {% get_schedule_template_at schedule_templates day_data.day_of_week lesson_num as template %}
-                    {% if template %}
-                    <td class="subject-cell">{{ template.subject.name }}</td>
-                    <td>
-                        {% if template.classroom %}
-                        <span class="classroom-badge">{{ template.classroom.name }}</span>
+    <!-- Schedule Table -->
+    <div class="glass-panel rounded-[2rem] overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[700px]" style="border-collapse: separate; border-spacing: 0;">
+                <thead>
+                    <tr class="border-b border-border">
+                        <th class="px-5 py-4 text-left text-[10px] font-black text-mutedText uppercase tracking-widest w-24">День</th>
+                        <th class="px-3 py-4 text-center text-[10px] font-black text-mutedText uppercase tracking-widest w-12">Пара</th>
+                        <th class="px-3 py-4 text-left text-[10px] font-black text-mutedText uppercase tracking-widest w-28">Час</th>
+                        <th class="px-5 py-4 text-left text-[10px] font-black text-mutedText uppercase tracking-widest">Предмет</th>
+                        <th class="px-3 py-4 text-center text-[10px] font-black text-mutedText uppercase tracking-widest w-24">Аудиторія</th>
+                        <th class="px-5 py-4 text-left text-[10px] font-black text-mutedText uppercase tracking-widest w-48">Викладач</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day_data in week_days %}
+                    {% for lesson_num in "1,2,3,4,5,6"|split:"," %}
+                    <tr class="border-b border-border/50 hover:bg-primary/5 transition-colors">
+                        {% if forloop.first %}
+                        <td rowspan="6" class="px-5 py-4 align-middle border-r border-border/50">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="text-[10px] font-black text-mutedText uppercase tracking-widest">{{ day_data.day_name|upper }}</span>
+                                <span class="text-lg font-black text-mainText">{{ day_data.date|date:"d.m" }}</span>
+                            </div>
+                        </td>
                         {% endif %}
-                    </td>
-                    <td class="teacher-name">{{ template.teacher.full_name|format_teacher_short }}</td>
-                    {% else %}
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    {% endif %}
-                </tr>
-                {% endfor %}
-                {% endfor %}
-            </tbody>
-        </table>
+
+                        <td class="px-3 py-4 text-center">
+                            <div class="w-7 h-7 rounded-lg bg-border/60 flex items-center justify-center font-black text-sm text-mutedText mx-auto">{{ lesson_num }}</div>
+                        </td>
+                        <td class="px-3 py-4">
+                            <span class="text-xs font-bold text-mutedText font-mono bg-background px-2 py-1 rounded-lg">{% lesson_hours lesson_num %}</span>
+                        </td>
+
+                        {% get_schedule_template_at schedule_templates day_data.day_of_week lesson_num as template %}
+                        {% if template %}
+                        <td class="px-5 py-4 font-bold text-mainText text-sm">{{ template.subject.name }}</td>
+                        <td class="px-3 py-4 text-center">
+                            {% if template.classroom %}
+                            <span class="bg-accent/10 text-accent text-xs font-bold px-3 py-1 rounded-full">{{ template.classroom.name }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-mutedText text-sm font-medium">{{ template.teacher.full_name|format_teacher_short }}</td>
+                        {% else %}
+                        <td class="px-5 py-4 text-mutedText/30 text-sm">—</td>
+                        <td class="px-3 py-4"></td>
+                        <td class="px-5 py-4"></td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

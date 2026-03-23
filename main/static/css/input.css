@@ -55,8 +55,23 @@
 @layer components {
   /* Базова картка (Bento Tile) */
   .card-bento {
-    @apply bg-surface rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between border border-border transition-colors duration-300;
+    @apply bg-surface rounded-3xl p-5 relative overflow-hidden flex flex-col justify-between border border-border transition-all duration-300;
     box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  }
+
+  .card-bento:hover {
+    @apply -translate-y-1;
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Premium Gradient variant */
+  .card-premium {
+    @apply relative overflow-hidden;
+  }
+
+  .card-premium::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none;
   }
 
   /* Акцентна картка (кольорова) */

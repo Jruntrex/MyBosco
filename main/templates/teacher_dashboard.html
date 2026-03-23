@@ -82,14 +82,14 @@
             </svg>
         </div>
         <div>
-            <div class="text-xs {% if current_lesson %}text-green-500{% else %}text-primary{% endif %} uppercase font-black tracking-widest mb-4 flex items-center gap-2">
+            <div class="text-xs {% if current_lesson %}text-green-500{% else %}text-primary{% endif %} uppercase font-black tracking-widest mb-2 flex items-center gap-2">
                 <span class="w-2 h-2 {% if current_lesson %}bg-green-500 animate-pulse{% else %}bg-primary{% endif %} rounded-full"></span>
                 {% if current_lesson %}ЗАРАЗ У ЕФІРІ{% else %}Наступна пара{% endif %}
             </div>
-            <div class="text-3xl font-extrabold text-mainText mb-2 leading-tight">
+            <div class="text-4xl font-extrabold text-mainText mb-3 leading-tight">
                 {% if lesson.subject %}{{ lesson.subject.name }}{% else %}—{% endif %}
             </div>
-            <div class="flex items-center gap-4 text-mutedText mb-6">
+            <div class="flex items-center gap-4 text-mutedText mb-3">
                 <div class="flex items-center gap-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -116,8 +116,8 @@
                 </div>
             </div>
             <a href="{% url 'teacher_live_mode' lesson.id %}"
-                class="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/80 transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/80 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                 </svg>
                 Live Mode

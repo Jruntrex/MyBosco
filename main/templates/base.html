@@ -9,28 +9,87 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <!-- Apply dark theme BEFORE render to avoid flash -->
+    <script>(function(){var t=localStorage.getItem('mybosco_theme');if(t==='dark')document.documentElement.classList.add('dark');else if(t==='light')document.documentElement.classList.remove('dark');}());</script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     {% block extra_head %}{% endblock %}
+    <style>
+        /* ── Dark mode body bg override ── */
+        html.dark body {
+            background: linear-gradient(135deg, #060d1a 0%, #0f172a 40%, #1a1035 100%) !important;
+        }
+        html.dark .blob   { opacity: 0.15 !important; }
+        html.dark .blob-1 { background: radial-gradient(circle, #3730a3 0%, #4338ca 100%) !important; }
+        html.dark .blob-2 { background: radial-gradient(circle, #1e1b4b 0%, #4c1d95 100%) !important; }
+        html.dark .blob-3 { background: radial-gradient(circle, #1e3a5f 0%, #1d4ed8 100%) !important; }
+        /* Notification dropdown dark */
+        html.dark #notif-dropdown {
+            background: rgba(10,15,30,0.97) !important;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(99,102,241,0.12) inset !important;
+        }
+        /* ─── Blob background (same as landing) ──────────────────────── */
+        .blob-bg {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.45;
+            animation: blobFloat 20s ease-in-out infinite alternate;
+        }
+        .blob-1 {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, #a5b4fc 0%, #c4b5fd 100%);
+            top: -200px; left: -200px;
+            animation-delay: 0s;
+        }
+        .blob-2 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, #fbcfe8 0%, #f9a8d4 100%);
+            top: 20%; right: -150px;
+            animation-delay: -7s;
+        }
+        .blob-3 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, #bfdbfe 0%, #93c5fd 100%);
+            bottom: 10%; left: 10%;
+            animation-delay: -14s;
+        }
+        @keyframes blobFloat {
+            0%   { transform: translate(0, 0) scale(1); }
+            33%  { transform: translate(40px, -60px) scale(1.05); }
+            66%  { transform: translate(-30px, 40px) scale(0.95); }
+            100% { transform: translate(20px, -20px) scale(1.02); }
+        }
+        /* Dark theme: dimmer blobs */
+        .dark .blob { opacity: 0.18; }
+    </style>
 </head>
 
 <body
-    class="{% block body_class %}{% endblock %}">
-    <div class="flex min-h-screen">
+    class="{% block body_class %}{% endblock %}"
+    style="background: linear-gradient(135deg, #D9E0EE 0%, #F3E8EE 100%); min-height: 100vh; overflow-x: hidden;">
+
+    <!-- Animated blob background -->
+    <div class="blob-bg" aria-hidden="true">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="flex min-h-screen" style="position: relative; z-index: 1;">
 
         <!-- Sidebar -->
         <div class="glass-sidebar w-64 flex-shrink-0 fixed h-full z-50 flex flex-col p-6 transition-transform duration-300 transform -translate-x-full lg:translate-x-0"
             id="sidebar" role="navigation" aria-label="Головне меню">
             <div class="mb-10">
                 <div class="flex items-center gap-3">
-                    <div
-                        class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 14l9-5-9-5-9 5 9 5z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.908V14z" />
-                        </svg>
-                    </div>
+                    <img src="{% static 'images/logo.png' %}" alt="MyBosco" class="w-10 h-10">
                     <h2 class="text-xl font-black text-mainText tracking-tighter uppercase mb-0">MyBosco</h2>
                 </div>
             </div>
@@ -48,7 +107,7 @@
                 </a>
 
                 <a href="{% url 'users_list' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'users' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'users' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -58,7 +117,7 @@
                 </a>
 
                 <a href="{% url 'groups_list' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'groups' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'groups' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -68,7 +127,7 @@
                 </a>
 
                 <a href="{% url 'subjects_list' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'subjects' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'subjects' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -78,7 +137,7 @@
                 </a>
 
                 <a href="{% url 'classrooms_list' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'classrooms' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'classrooms' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -89,7 +148,7 @@
 
 
                 <a href="{% url 'set_weekly_schedule' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'schedule' or active_page == 'schedule_builder' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'schedule' or active_page == 'schedule_builder' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -99,7 +158,7 @@
                 </a>
 
                 <a href="{% url 'admin_reports' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'reports' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'reports' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -109,7 +168,7 @@
                 </a>
 
                 <a href="{% url 'news_feed' %}"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'news' %}bg-gradient-to-r from-primary to-primary/50 text-white font-semibold shadow-button{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'news' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
                     <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -210,6 +269,17 @@
                     <span>Відвідування</span>
                 </a>
 
+                <a href="{% url 'timeline_schedule' %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'schedule' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    tabindex="0">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>Розклад</span>
+                </a>
+
                 <a href="{% url 'lessons_list' %}"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'lessons' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
                     tabindex="0">
@@ -233,6 +303,19 @@
                 </a>
                 {% endif %}
 
+                <a href="{% url 'notifications_page' %}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {% if active_page == 'notifications' %}bg-primary/10 text-primary font-bold{% else %}text-mutedText hover:bg-surface hover:text-mainText{% endif %}"
+                    tabindex="0">
+                    <div class="relative w-6 h-6 flex-shrink-0">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span id="sidebar-notif-dot" style="display:none;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#FF6B6B;border:2px solid white;"></span>
+                    </div>
+                    <span>Сповіщення</span>
+                </a>
+
             </nav>
 
             <div class="pt-6 border-t border-border mt-6">
@@ -249,7 +332,7 @@
             </div>
         </div>
 
-        <div class="flex-grow w-full lg:ml-64 p-6 lg:p-10 transition-all duration-300 relative">
+        <div class="flex-grow w-full lg:ml-64 p-4 lg:p-6 transition-all duration-300 relative">
 
             <button id="menu-toggle" class="lg:hidden mb-6 text-mainText" aria-label="Відкрити меню">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -261,7 +344,7 @@
             <header role="banner">
 
                 <!-- Nav Buttons (fixed, after sidebar on desktop) -->
-                <div class="fixed top-6 lg:top-10 left-6 lg:left-72 z-40 flex items-center gap-2">
+                <div class="fixed top-4 lg:top-6 left-6 lg:left-72 z-40 flex items-center gap-2">
                     <button onclick="safeNavigateBack()"
                         class="p-2.5 bg-surface/60 backdrop-blur-md border border-border/40 rounded-xl text-mutedText hover:text-primary hover:bg-surface hover:shadow-lg transition-all duration-300 group"
                         title="Назад">
@@ -281,7 +364,7 @@
                 </div>
 
                 <!-- Fixed bar: user panel -->
-                <div class="fixed top-6 lg:top-10 right-6 lg:right-10 z-40">
+                <div class="fixed top-4 lg:top-6 right-4 lg:right-6 z-40">
 
                     <!-- Right Side: Floating Glass Panel Header -->
                     <div
@@ -399,7 +482,7 @@
     </div>
 
     <!-- Notification Dropdown (fixed, outside any overflow context) -->
-    <div id="notif-dropdown" style="display:none; position:fixed; z-index:9999; width:340px; border-radius:16px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.4) inset; background:rgba(255,255,255,0.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);">
+    <div id="notif-dropdown" style="display:none; position:fixed; z-index:9999; width:360px; border-radius:18px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.4) inset; background:rgba(255,255,255,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);">
         <!-- Header -->
         <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px 12px; border-bottom:1px solid rgba(0,0,0,0.07);">
             <div style="display:flex; align-items:center; gap:8px;">
@@ -414,10 +497,63 @@
             </button>
         </div>
         <!-- List -->
-        <div id="notif-list" style="max-height:380px; overflow-y:auto;">
+        <div id="notif-list" style="max-height:400px; overflow-y:auto;">
             <p style="text-align:center; padding:28px 16px; font-size:13px; color:#A9A9A9;">Завантаження...</p>
         </div>
+        <!-- Footer -->
+        <div style="padding:10px 16px; border-top:1px solid rgba(0,0,0,0.07); text-align:center;">
+            <a href="/notifications/" style="font-size:12px; font-weight:600; color:#5B84FF; text-decoration:none; display:inline-flex; align-items:center; gap:5px;"
+               onmouseenter="this.style.opacity='0.75'" onmouseleave="this.style.opacity='1'">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10"/>
+                </svg>
+                Переглянути всі сповіщення
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+            </a>
+        </div>
     </div>
+
+    <!-- Scroll to top button -->
+    <button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})"
+        aria-label="Прокрутити догори"
+        style="
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 9999;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+            opacity: 0;
+            transform: translateY(16px) scale(0.85);
+            transition: opacity 0.25s, transform 0.25s;
+            pointer-events: none;
+        ">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+    <script>
+        (function(){
+            var btn = document.getElementById('scroll-top-btn');
+            window.addEventListener('scroll', function(){
+                var show = window.scrollY > 300;
+                btn.style.opacity = show ? '1' : '0';
+                btn.style.transform = show ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.85)';
+                btn.style.pointerEvents = show ? 'auto' : 'none';
+            }, {passive: true});
+        })();
+    </script>
 
     {% block extra_js %}
     <script>
@@ -525,10 +661,12 @@
         // NOTIFICATIONS
         // ========================
         const NOTIF_COLORS = {
-            news:    { bg: 'rgba(76,175,80,0.12)',   color: '#2e7d32', label: 'Новини'   },
-            comment: { bg: 'rgba(156,39,176,0.12)',  color: '#6a1b9a', label: 'Коментар' },
-            grade:   { bg: 'rgba(91,132,255,0.12)',  color: '#3949ab', label: 'Оцінка'   },
-            absence: { bg: 'rgba(255,107,107,0.12)', color: '#c62828', label: 'Пропуск'  },
+            news:         { bg: 'rgba(76,175,80,0.12)',   color: '#2e7d32', label: 'Новини'    },
+            comment:      { bg: 'rgba(156,39,176,0.12)',  color: '#6a1b9a', label: 'Коментар'  },
+            grade:        { bg: 'rgba(91,132,255,0.12)',  color: '#3949ab', label: 'Оцінка'    },
+            absence:      { bg: 'rgba(255,107,107,0.12)', color: '#c62828', label: 'Пропуск'   },
+            homework:     { bg: 'rgba(255,152,0,0.12)',   color: '#e65100', label: 'ДЗ'        },
+            private_chat: { bg: 'rgba(103,58,183,0.12)',  color: '#4527a0', label: 'Чат по ДЗ' },
         };
 
         let _notifOpen = false;
@@ -539,7 +677,7 @@
             _notifOpen = !_notifOpen;
             if (_notifOpen) {
                 const rect = btn.getBoundingClientRect();
-                dropdown.style.top  = (rect.bottom + 10) + 'px';
+                dropdown.style.top   = (rect.bottom + 10) + 'px';
                 dropdown.style.right = (window.innerWidth - rect.right) + 'px';
                 dropdown.style.display = 'block';
                 loadNotifications();
@@ -570,32 +708,41 @@
                 return;
             }
             list.innerHTML = items.map(n => {
-                const c    = NOTIF_COLORS[n.type] || { bg: 'rgba(169,169,169,0.12)', color: '#5E6C84', label: n.type };
-                const link = n.post_id ? `/news/#post-${n.post_id}` : '#';
-                const unreadDot = !n.is_read
-                    ? '<span style="width:7px;height:7px;border-radius:50%;background:#5B84FF;flex-shrink:0;margin-top:4px;"></span>'
+                const c      = NOTIF_COLORS[n.type] || { bg: 'rgba(169,169,169,0.12)', color: '#5E6C84', label: n.type };
+                const href   = n.link || '#';
+                const rowBg  = n.is_read ? '' : 'background:rgba(91,132,255,0.04);';
+                const dot    = !n.is_read
+                    ? '<span style="width:7px;height:7px;border-radius:50%;background:#5B84FF;flex-shrink:0;margin-top:5px;"></span>'
                     : '<span style="width:7px;flex-shrink:0;"></span>';
-                const rowBg = n.is_read ? '' : 'background:rgba(91,132,255,0.04);';
-                return `<a href="${link}" onclick="markRead(${n.id},event)" style="display:flex;gap:10px;align-items:flex-start;padding:11px 14px;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.05);transition:background 0.15s;${rowBg}"
-                    onmouseenter="this.style.background='rgba(91,132,255,0.07)'" onmouseleave="this.style.background='${n.is_read ? 'transparent' : 'rgba(91,132,255,0.04)'}'">
-                    <span style="display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.04em;background:${c.bg};color:${c.color};white-space:nowrap;flex-shrink:0;margin-top:1px;">${c.label}</span>
-                    <div style="flex:1;min-width:0;">
-                        <p style="font-size:12.5px;font-weight:600;color:#2F3640;margin:0 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(n.title)}</p>
-                        ${n.message ? `<p style="font-size:11.5px;color:#5E6C84;margin:0 0 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(n.message)}</p>` : ''}
-                        <p style="font-size:10.5px;color:#A9A9A9;margin:0;">${n.created_at}</p>
-                    </div>
-                    ${unreadDot}
-                </a>`;
+                const deleteBtn = `<button onclick="deleteNotifDropdown(${n.id},event)" title="Видалити"
+                    style="flex-shrink:0;border:none;background:none;cursor:pointer;color:#ccc;padding:2px 4px;border-radius:4px;line-height:1;font-size:14px;transition:color 0.15s;"
+                    onmouseenter="this.style.color='#FF6B6B'" onmouseleave="this.style.color='#ccc'">✕</button>`;
+                return `<div style="display:flex;align-items:flex-start;gap:0;border-bottom:1px solid rgba(0,0,0,0.05);${rowBg}transition:background 0.15s;"
+                         onmouseenter="this.style.background='rgba(91,132,255,0.07)'" onmouseleave="this.style.background='${n.is_read ? 'transparent' : 'rgba(91,132,255,0.04)'}'">
+                    <a href="${href}" onclick="markRead(${n.id},event)" style="display:flex;gap:10px;align-items:flex-start;padding:11px 10px 11px 14px;text-decoration:none;flex:1;min-width:0;">
+                        <span style="display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.04em;background:${c.bg};color:${c.color};white-space:nowrap;flex-shrink:0;margin-top:1px;">${c.label}</span>
+                        <div style="flex:1;min-width:0;">
+                            <p style="font-size:12.5px;font-weight:600;color:#2F3640;margin:0 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(n.title)}</p>
+                            ${n.message ? `<p style="font-size:11.5px;color:#5E6C84;margin:0 0 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(n.message)}</p>` : ''}
+                            <p style="font-size:10.5px;color:#A9A9A9;margin:0;">${n.created_at}</p>
+                        </div>
+                        ${dot}
+                    </a>
+                    <div style="display:flex;align-items:center;padding:11px 10px 11px 4px;">${deleteBtn}</div>
+                </div>`;
             }).join('');
         }
 
         function updateBadge(count) {
             const badge = document.getElementById('notif-badge');
+            const dot   = document.getElementById('sidebar-notif-dot');
             if (count > 0) {
                 badge.textContent = count > 99 ? '99+' : count;
                 badge.style.display = 'inline-flex';
+                if (dot) dot.style.display = 'block';
             } else {
                 badge.style.display = 'none';
+                if (dot) dot.style.display = 'none';
             }
         }
 
@@ -608,6 +755,15 @@
 
         function markAllRead() {
             fetch('/api/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
+            }).then(() => loadNotifications()).catch(() => {});
+        }
+
+        function deleteNotifDropdown(id, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            fetch(`/api/notifications/delete/${id}/`, {
                 method: 'POST',
                 headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
             }).then(() => loadNotifications()).catch(() => {});

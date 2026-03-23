@@ -6,34 +6,31 @@
 {% block page_title_heading %}{% endblock %}
 
 {% block content %}
-<!-- Hero banner -->
+<!-- Page Header -->
 <div class="relative overflow-hidden rounded-2xl mb-6 shadow-lg">
     <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 via-blue-500 to-violet-500"></div>
     <div class="absolute -top-6 -right-6 w-36 h-36 rounded-full bg-white/5"></div>
     <div class="absolute -bottom-8 left-8 w-48 h-48 rounded-full bg-white/5"></div>
-    <div class="relative px-6 py-5 flex items-center justify-between">
+    <div class="relative px-8 py-6 flex items-center justify-between">
         <div>
             <div class="flex items-center gap-2 mb-1">
-                <svg class="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6a2 2 0 00-2-2H5a2 2 0 00-2 2v13M13 19V3a2 2 0 00-2-2H9a2 2 0 00-2 2v16M18 19V9a2 2 0 00-2-2h-2a2 2 0 00-2 2v10"/>
-                </svg>
                 <span class="text-white/60 text-xs font-semibold uppercase tracking-wider">MyBosco Admin</span>
             </div>
-            <h1 class="text-4xl font-black text-white leading-tight">Конструктор Розкладу</h1>
-            <p class="text-white/65 text-sm mt-0.5">Створення та налаштування розкладу занять</p>
+            <h1 class="text-4xl font-black text-white tracking-tighter">Конструктор Розкладу</h1>
+            <p class="text-white/65 font-medium text-sm mt-1">Створення та налаштування розкладу занять</p>
         </div>
-        <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
         </div>
     </div>
 </div>
-<div class="card-bento min-h-[600px] pb-10">
+<div class="glass-panel rounded-[2rem] p-6 min-h-[600px] pb-10">
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Sidebar -->
         <div class="lg:col-span-1">
-            <div class="card-bento p-6 sticky top-6">
+            <div class="glass-panel rounded-[2rem] p-6 sticky top-6 border border-border/40">
                 <div class="mb-5">
                     <label class="text-[10px] font-black text-mutedText uppercase tracking-widest mb-2 block">Оберіть групу</label>
                     <select id="groupSelect"
@@ -45,13 +42,13 @@
                     </select>
                 </div>
 
-                <div id="groupInfo" class="mb-5 p-3 bg-primary/10 border border-primary/20 rounded-xl hidden">
+                <div id="groupInfo" class="mb-5 p-4 bg-primary/10 border border-primary/20 rounded-2xl hidden">
                     <div id="groupInfoText" class="text-sm font-bold text-primary">
                         Оберіть групу для початку
                     </div>
                 </div>
 
-                <div id="autoSaveStatus" class="mb-5 text-sm font-bold"></div>
+                <div id="autoSaveStatus" class="mb-4 text-sm font-bold"></div>
 
                 <div class="space-y-3">
                     <button id="saveBtn"
@@ -70,7 +67,7 @@
         <div class="lg:col-span-3">
             <div id="scheduleContainer" style="display: none;" class="space-y-8">
                 {% for day_id, day_name in days %}
-                <div class="card-bento day-panel p-0 overflow-hidden">
+                <div class="glass-panel rounded-[2rem] day-panel p-0 overflow-hidden border border-border/40">
                     <div class="px-6 py-4 border-b border-border flex items-center justify-between">
                         <h3 class="text-sm font-black text-mainText uppercase tracking-widest flex items-center gap-3">
                             <span class="w-1.5 h-6 bg-primary rounded-full"></span>
@@ -149,7 +146,7 @@
 
             <!-- Empty State -->
             <div id="emptyState"
-                class="card-bento flex flex-col items-center justify-center py-20 text-center mt-0"
+                class="glass-panel rounded-[2rem] flex flex-col items-center justify-center py-20 text-center mt-0 border border-border/40"
                 style="display: none;">
                 <div class="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -5,6 +5,7 @@
 {% block header_title %}Мої Уроки{% endblock %}
 {% block page_title_heading %}{% endblock %}
 
+
 {% block content %}
 <!-- Hero banner -->
 <div class="relative overflow-hidden rounded-2xl mb-6 shadow-lg">
@@ -374,7 +375,7 @@
     {% if user.role == 'teacher' %}
     {% regroup lessons_by_subject_group by subject as subject_groups %}
     {% else %}
-    {% regroup lessons by subject as subject_groups %}
+    {% regroup lessons_by_subject by subject as subject_groups %}
     {% endif %}
 
     <div class="space-y-6" id="view-by-subject" style="display:none">
@@ -753,17 +754,36 @@ const todayGroup = document.getElementById('today-group');
 const jumpBtn    = document.getElementById('today-jump-btn');
 let todayObserver = null;
 
+const scrollTopBtn = document.getElementById('scroll-top-btn');
+
+function syncScrollTopPosition() {
+    if (!scrollTopBtn) return;
+    const todayBtnVisible = jumpBtn && jumpBtn.style.display !== 'none';
+    if (todayBtnVisible) {
+        scrollTopBtn.style.bottom = '5.5rem';
+        scrollTopBtn.style.right  = '1.5rem';
+    } else {
+        scrollTopBtn.style.bottom = '2rem';
+        scrollTopBtn.style.right  = '2rem';
+    }
+}
+
+// Оновлювати позицію при кожному скролі (коли scroll-top з'являється/зникає)
+window.addEventListener('scroll', syncScrollTopPosition, { passive: true });
+
 function checkTodayVisibility() {
     if (todayGroup && jumpBtn && currentView === 'date') {
         if (todayObserver) todayObserver.disconnect();
         todayObserver = new IntersectionObserver(entries => {
             entries.forEach(e => {
                 jumpBtn.style.display = e.isIntersecting ? 'none' : '';
+                syncScrollTopPosition();
             });
         }, { threshold: 0.1 });
         todayObserver.observe(todayGroup);
     } else if (jumpBtn) {
         jumpBtn.style.display = 'none';
+        syncScrollTopPosition();
     }
 }
 checkTodayVisibility();
