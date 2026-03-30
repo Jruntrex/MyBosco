@@ -1,5 +1,5 @@
 """
-Service Layer для MyBosco
+Service Layer для Zephyra
 
 Цей модуль містить бізнес-логіку додатку, відокремлену від views.
 """

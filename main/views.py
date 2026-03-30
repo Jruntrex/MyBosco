@@ -33,6 +33,7 @@ from .models import (
     GradeRule,
     GradingScale,
     HomeworkSubmission,
+    InstitutionSettings,
     Lesson,
     LessonAttachment,
     Notification,
@@ -206,6 +207,30 @@ def admin_panel_view(request: HttpRequest) -> HttpResponse:
         "active_page": "admin",
     }
     return render(request, "admin.html", context)
+
+
+@role_required("admin")
+def institution_settings_view(request: HttpRequest) -> HttpResponse:
+    obj = InstitutionSettings.get_instance()
+    if obj is None:
+        obj = InstitutionSettings()
+
+    if request.method == "POST":
+        obj.name = request.POST.get("name", obj.name).strip() or obj.name
+        obj.tagline = request.POST.get("tagline", "").strip()
+        if "logo" in request.FILES:
+            obj.logo = request.FILES["logo"]
+        elif request.POST.get("logo_clear"):
+            obj.logo = None
+        if "favicon" in request.FILES:
+            obj.favicon = request.FILES["favicon"]
+        elif request.POST.get("favicon_clear"):
+            obj.favicon = None
+        obj.save()
+        messages.success(request, "Налаштування закладу збережено")
+        return redirect("institution_settings")
+
+    return render(request, "institution_settings.html", {"obj": obj, "active_page": "institution"})
 
 
 # --- USERS ---

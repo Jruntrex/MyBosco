@@ -95,3 +95,6 @@ logs/
 
 # DB population scripts
 populate_db.py
+
+# Claude Code local config
+.claude/

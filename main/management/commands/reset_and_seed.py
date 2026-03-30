@@ -676,7 +676,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.WARNING("=" * 60))
-        self.stdout.write(self.style.WARNING("  RESET AND SEED - EduTrack"))
+        self.stdout.write(self.style.WARNING("  RESET AND SEED - Zephyra"))
         self.stdout.write(self.style.WARNING("=" * 60))
 
         self._clear_data()

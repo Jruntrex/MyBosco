@@ -15,6 +15,7 @@ urlpatterns = [
     # 2. АДМІНІСТРУВАННЯ ТА ДАШБОРДИ
     # =========================
     path("admin/", views.admin_panel_view, name="admin_panel"),
+    path("admin/institution/", views.institution_settings_view, name="institution_settings"),
     path("users/", views.users_list_view, name="users_list"),
     path("schedule/", views.schedule_view, name="schedule_view"),
     path("schedule/timeline/", views.timeline_schedule_view, name="timeline_schedule"),

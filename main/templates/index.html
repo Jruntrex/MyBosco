@@ -5,8 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyBosco — Цифровий Кампус</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+    <title>Zephyra — Цифровий Кампус</title>
+    {% if institution and institution.favicon %}<link rel="icon" href="{{ institution.favicon.url }}">{% else %}<link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">{% endif %}
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <!-- Apply dark theme BEFORE render to avoid flash -->
@@ -76,7 +76,7 @@
             box-shadow: 0 16px 48px rgba(91,132,255,0.15);
         }
         .nav-logo { display: flex; align-items: center; gap: 10px; }
-        .nav-logo img { width: 36px; height: 36px; }
+        .nav-logo img { width: 52px; height: 52px; }
         .nav-logo-text { font-size: 18px; font-weight: 900; color: #2F3640; letter-spacing: -0.5px; }
         .nav-logo-badge {
             font-size: 9px; font-weight: 800; letter-spacing: 2px;
@@ -644,7 +644,7 @@
             flex-wrap: wrap; gap: 20px;
         }
         .footer-logo { display: flex; align-items: center; gap: 10px; }
-        .footer-logo img { width: 28px; height: 28px; opacity: 0.6; filter: grayscale(0.3); }
+        .footer-logo img { width: 40px; height: 40px; opacity: 0.7; }
         .footer-copy { font-size: 12px; color: #A9A9A9; font-weight: 700; }
         .footer-links { display: flex; gap: 32px; }
         .footer-link {
@@ -900,9 +900,8 @@
 <nav class="landing-nav" id="mainNav">
     <div class="nav-inner" id="navInner">
         <div class="nav-logo">
-            <img src="{% static 'images/logo.png' %}" alt="MyBosco">
-            <span class="nav-logo-text">MyBosco</span>
-            <span class="nav-logo-badge">EduTrack</span>
+            <img src="{% static 'images/logo.svg' %}" alt="Zephyra">
+            <span class="nav-logo-text">Zephyra</span>
         </div>
         <div style="display:flex; align-items:center; gap:20px;">
             <a href="#features" style="font-size:13px; font-weight:700; color:#5E6C84; text-decoration:none; display:none;" class="sm-show" id="nav-features">Можливості</a>
@@ -990,7 +989,7 @@
                     <div class="preview-dot" style="background:#FF6B6B;"></div>
                     <div class="preview-dot" style="background:#FFB142;"></div>
                     <div class="preview-dot" style="background:#4CAF50;"></div>
-                    <span class="preview-title">MyBosco — Журнал Викладача</span>
+                    <span class="preview-title">Zephyra — Журнал Викладача</span>
                 </div>
                 <div class="preview-body">
                     <div class="preview-stats">
@@ -1363,8 +1362,8 @@
 <footer class="landing-footer">
     <div class="footer-inner">
         <div class="footer-logo">
-            <img src="{% static 'images/logo.png' %}" alt="MyBosco">
-            <span class="footer-copy">МНЗ ім. св. Івана Боско &copy; 2025 — MyBosco EduTrack</span>
+            <img src="{% static 'images/logo.svg' %}" alt="Zephyra">
+            <span class="footer-copy">Zephyra &copy; 2025</span>
         </div>
         <div class="footer-links">
             <a href="#" class="footer-link">Розробка</a>
@@ -1386,10 +1385,10 @@
 
     <!-- Logo -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:48px;" class="animate-slide-up">
-        <img src="{% static 'images/logo.png' %}" alt="MyBosco" style="width:48px;height:48px;">
+        <img src="{% static 'images/logo.svg' %}" alt="Zephyra" style="width:64px;height:64px;">
         <div>
-            <div style="font-size:20px;font-weight:900;color:#2F3640;letter-spacing:-0.5px;line-height:1;">MyBosco</div>
-            <div style="font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#5B84FF;margin-top:2px;">EduTrack System</div>
+            <div style="font-size:20px;font-weight:900;color:#2F3640;letter-spacing:-0.5px;line-height:1;">Zephyra</div>
+            <div style="font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#5B84FF;margin-top:2px;">Zephyra System</div>
         </div>
     </div>
 

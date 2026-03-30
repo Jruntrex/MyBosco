@@ -1000,3 +1000,48 @@ def create_default_homework_eval_type(sender, instance, created, **kwargs):
                 "order": 0,
             },
         )
+
+
+class InstitutionSettings(models.Model):
+    """Singleton model for institution branding (e.g. MyBosco under Zephyra)."""
+
+    name = models.CharField(
+        max_length=200,
+        default="MyBosco",
+        verbose_name="Назва закладу",
+    )
+    tagline = models.CharField(
+        max_length=300,
+        blank=True,
+        verbose_name="Слоган",
+    )
+    logo = models.ImageField(
+        upload_to="institution/",
+        null=True,
+        blank=True,
+        verbose_name="Логотип",
+    )
+    favicon = models.ImageField(
+        upload_to="institution/",
+        null=True,
+        blank=True,
+        verbose_name="Фавікон",
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата оновлення")
+
+    class Meta:
+        db_table = "institution_settings"
+        verbose_name = "Налаштування закладу"
+        verbose_name_plural = "Налаштування закладу"
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.pk and InstitutionSettings.objects.exists():
+            raise ValidationError("Може існувати лише один запис налаштувань закладу.")
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_instance(cls):
+        return cls.objects.first()

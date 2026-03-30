@@ -9,6 +9,7 @@ from .models import (
     EvaluationType,
     GradeRule,
     GradingScale,
+    InstitutionSettings,
     Lesson,
     ScheduleTemplate,
     StudentPerformance,
@@ -622,3 +623,29 @@ class BuildingAccessLogAdmin(admin.ModelAdmin):
 
 # Реєструємо User окремо
 admin.site.register(User, UserAdmin)
+
+
+# ==========================================
+# НАЛАШТУВАННЯ ЗАКЛАДУ (SINGLETON)
+# ==========================================
+
+
+@admin.register(InstitutionSettings)
+class InstitutionSettingsAdmin(admin.ModelAdmin):
+    """
+    Singleton admin: prevents creating a second record.
+    'Add' button is hidden when a record already exists.
+    """
+
+    fieldsets = (
+        ("Ідентифікація закладу", {"fields": ("name", "tagline")}),
+        ("Медіафайли", {"fields": ("logo", "favicon")}),
+        ("Системна інформація", {"fields": ("updated_at",), "classes": ("collapse",)}),
+    )
+    readonly_fields = ("updated_at",)
+
+    def has_add_permission(self, request):
+        return not InstitutionSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

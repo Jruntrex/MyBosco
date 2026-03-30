@@ -1,34 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 186">
-  <rect width="196" height="186" fill="white"/>
-  <g fill="#1a2869">
-    <!-- Left book pillar -->
-    <rect x="8" y="16" width="14" height="130" rx="3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
 
-    <!-- M: left vertical -->
-    <rect x="28" y="16" width="14" height="130" rx="2"/>
+  <!-- feather: same orientation as site logo, larger scale, lighter colors -->
+  <g transform="translate(100,105) scale(-0.80,0.80) rotate(-45) translate(0,-169)">
 
-    <!-- M: left diagonal -->
-    <polygon points="42,16 54,16 74,76 62,76"/>
+    <!-- spine -->
+    <path d="M0 300 C-4 220, 6 120, 0 0" fill="none" stroke="#A89FF5" stroke-width="6" stroke-linecap="round"/>
 
-    <!-- M: right diagonal -->
-    <polygon points="62,76 74,76 94,16 82,16"/>
+    <!-- left barbs -->
+    <path d="M-1 56  C-16 44, -38 30, -50 14"    fill="none" stroke="#90AAFF" stroke-width="4.0" stroke-linecap="round"/>
+    <path d="M-1 112 C-22 92, -54 70, -70 50"    fill="none" stroke="#90AAFF" stroke-width="5.0" stroke-linecap="round"/>
+    <path d="M-1 168 C-24 140, -58 110, -76 84"  fill="none" stroke="#90AAFF" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M-1 224 C-18 196, -44 164, -58 140" fill="none" stroke="#90AAFF" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M-1 278 C-10 254, -22 228, -30 208" fill="none" stroke="#90AAFF" stroke-width="3.5" stroke-linecap="round"/>
 
-    <!-- M: right vertical -->
-    <rect x="94" y="16" width="14" height="130" rx="2"/>
+    <!-- right barbs -->
+    <path d="M1 56  C16 44,  38 30,  50 14"    fill="none" stroke="#7DE8C8" stroke-width="4.0" stroke-linecap="round"/>
+    <path d="M1 112 C22 92,  54 70,  70 50"    fill="none" stroke="#7DE8C8" stroke-width="5.0" stroke-linecap="round"/>
+    <path d="M1 168 C24 140, 58 110, 76 84"    fill="none" stroke="#7DE8C8" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M1 224 C18 196, 44 164, 58 140"   fill="none" stroke="#7DE8C8" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M1 278 C10 254, 22 228, 30 208"   fill="none" stroke="#7DE8C8" stroke-width="3.5" stroke-linecap="round"/>
 
-    <!-- B: left vertical -->
-    <rect x="116" y="16" width="14" height="130" rx="2"/>
+    <!-- tip dot -->
+    <circle cx="0" cy="0" r="7" fill="#7DE8C8"/>
 
-    <!-- B: top bump -->
-    <path d="M130,16 Q164,16 164,49 Q164,82 130,82 L130,70 Q150,70 150,49 Q150,28 130,28 Z"/>
+    <!-- calamus -->
+    <path d="M0 300 C-2 316, -1 328, 0 338" fill="none" stroke="#A89FF5" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
 
-    <!-- B: bottom bump -->
-    <path d="M130,82 Q168,82 168,111 Q168,146 130,146 L130,134 Q154,134 154,111 Q154,96 130,96 Z"/>
-
-    <!-- Right book pillar -->
-    <rect x="176" y="16" width="14" height="130" rx="3"/>
-
-    <!-- Bottom book spine curve -->
-    <path d="M8,146 Q97,183 190,146" stroke="#1a2869" stroke-width="10" fill="none" stroke-linecap="round"/>
   </g>
+
 </svg>
